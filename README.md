@@ -98,7 +98,7 @@ m3id/
 
 ---
 
-### Step 1 — Open the Project in VS Code
+### Step 1 — Open the Project in VS Code    
 
 1. Unzip `M3-ID_Combined.zip` to a folder (e.g. `C:\Projects\m3id`)
 2. Open **VS Code**
