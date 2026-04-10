@@ -20,7 +20,7 @@
 ---
 
 
-##TEAM DETAILS AND WORK DIVISION
+## TEAM DETAILS AND WORK DIVISION
 
 | S.No. | Name | Module | Key Responsibilities |
 |------|--------|--------|---------------------|
