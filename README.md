@@ -20,15 +20,15 @@
 ---
 
 
-#TEAM DETAILS AND WORK DIVISION
+##TEAM DETAILS AND WORK DIVISION
 
 | S.No. | Name | Module | Key Responsibilities |
 |------|--------|--------|---------------------|
-| 1 |	Gauresh Kumar Chaubey ->	|-Visual Deepfake Module-|	|-EfficientNet-B4 fine-tuning, FaceForensics++ preprocessing, frame-level inference pipeline, MediaPipe integration-|
-| 2 |	Ish Dubey ->	|-Voice Spoof Module-|	|-AASIST model fine-tuning, ASVspoof 2021 dataset, MFCC / Log-Mel feature extraction, VoxCeleb2 integration-|
-| 3 | Janhvi Yadav ->	|-Lip-Sync & Fusion-|	|-SyncNet implementation, audio-visual alignment, MLP fusion layer training, XAI evidence generation-|
-| 4 |	Anand Kumar ->	|-Backend & API-|	|-FastAPI development, WebSocket real-time streaming, JWT authentication, database design, Docker deployment-|
-| 5 |	Aryan Tiwari ->	|-Frontend & Integration	React.js dashboard, Chart.js visualisations, alert system, system testing, documentation-|
+| 1 |	Gauresh Kumar Chaubey | Visual Deepfake Module | EfficientNet-B4 fine-tuning, FaceForensics++ preprocessing, frame-level inference pipeline, MediaPipe integration|
+| 2 |	Ish Dubey	| Voice Spoof Module | AASIST model fine-tuning, ASVspoof 2021 dataset, MFCC / Log-Mel feature extraction, VoxCeleb2 integration |
+| 3 | Janhvi Yadav | Lip-Sync & Fusion | SyncNet implementation, audio-visual alignment, MLP fusion layer training, XAI evidence generation |
+| 4 |	Anand Kumar | Backend & API | FastAPI development, WebSocket real-time streaming, JWT authentication, database design, Docker deployment |
+| 5 |	Aryan Tiwari | Frontend & Integration | React.js dashboard, Chart.js visualisations, alert system, system testing, documentation |
 
 ## Project Structure
 
