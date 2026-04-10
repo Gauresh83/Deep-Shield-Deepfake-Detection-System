@@ -1,4 +1,5 @@
-# Deep-Shield-Deepfake-Detection-System# M3-ID — Multi-Modal Identity Defender
+# Deep-Shield-Deepfake-Detection-System
+# M3-ID — Multi-Modal Identity Defender
 
 > Detects AI-generated voice clones, deepfake faces, and synthetic text using a multi-modal fusion engine.
 
