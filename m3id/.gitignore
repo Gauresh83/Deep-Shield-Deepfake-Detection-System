@@ -19,6 +19,7 @@ build/
 
 # Uploads (runtime)
 backend/uploads/*
+!backend/uploads/.gitkeep
 
 # ML model weights
 backend/modules/face/weights/*.pt
