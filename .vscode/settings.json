@@ -1,0 +1,17 @@
+{
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/frontend",
+  "liveServer.settings.CustomBrowser": "chrome",
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/venv": false,
+    "**/m3id.db": false
+  }
+}
