@@ -1,0 +1,27 @@
+# M3-ID FINAL — All modules + WebSocket
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+sqlalchemy==2.0.29
+pydantic==2.6.4
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+aiofiles==23.2.1
+httpx==0.27.0
+email-validator==2.1.1
+websockets==12.0
+# Part 3 — Voice
+librosa==0.10.1
+soundfile==0.12.1
+numpy==1.26.4
+scipy==1.13.0
+# Part 4 — Face
+opencv-python==4.9.0.80
+# Optional deep learning:
+# torch==2.2.2
+# torchvision==0.17.2
+# torchaudio==2.2.2
+# timm==0.9.16
+# transformers==4.39.3
