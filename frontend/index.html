@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepShield M3-ID — Multi-Modal Identity Defender</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/design-system.css"/>
+  <link rel="stylesheet" href="assets/css/landing.css"/>
+</head>
+<body>
+
+<!-- ── NAVBAR ─────────────────────────────────────────────────── -->
+<nav class="landing-nav" id="landing-nav">
+  <a href="#" class="nav-brand-wrap">
+    <div class="nav-brand-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <span class="nav-brand-text">Deep<span>Shield</span></span>
+  </a>
+
+  <div class="nav-links-wrap">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#pipeline" class="nav-link">How It Works</a>
+    <a href="#tech"     class="nav-link">Technology</a>
+    <a href="pages/dashboard.html" class="nav-link">Dashboard</a>
+  </div>
+
+  <div class="nav-actions">
+    <!-- Theme switcher -->
+    <div class="theme-switcher" style="position:relative">
+      <button class="topbar-icon-btn" id="themeBtn" onclick="toggleThemeMenu('nav-theme-menu')" style="background:transparent;border-color:var(--border)">
+        <span class="theme-btn-icon" style="display:flex">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 010 20V2z" fill="currentColor" opacity=".15"/></svg>
+        </span>
+      </button>
+      <div class="theme-menu" id="nav-theme-menu">
+        <div style="padding:6px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)">Appearance</div>
+        <div id="nav-theme-menu-items"></div>
+      </div>
+    </div>
+    <a href="pages/login.html"  class="nav-login">Sign in</a>
+    <a href="pages/signup.html" class="nav-cta">Get started</a>
+  </div>
+</nav>
+
+<!-- ── HERO ───────────────────────────────────────────────────── -->
+<section class="hero-section">
+  <div class="hero-bg">
+    <div class="hero-grid"></div>
+    <div class="orb hero-orb-1"></div>
+    <div class="orb hero-orb-2"></div>
+  </div>
+
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <div class="eyebrow-dot"></div>
+        B.Tech Major Project 2026-27 · PSIT Kanpur
+      </div>
+
+      <h1 class="hero-title">
+        Detect <span class="accent-word">Deepfakes</span><br/>
+        Before They<br/>Fool Anyone
+      </h1>
+
+      <p class="hero-sub">DeepShield fuses face, voice, and linguistic analysis into one real-time verdict — making multi-modal identity fraud nearly impossible to execute.</p>
+
+      <div class="hero-actions">
+        <a href="pages/signup.html" class="hero-btn-primary">
+          Start detecting free
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="pages/dashboard.html" class="hero-btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          View Dashboard
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">97<span class="hero-stat-unit">%</span></div>
+          <div class="hero-stat-label">Fusion Accuracy</div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">3<span class="hero-stat-unit">s</span></div>
+          <div class="hero-stat-label">Avg Detection Time</div>
+        </div>
+        <div class="hero-stat-divider"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">4</div>
+          <div class="hero-stat-label">AI Modules Active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection card visual -->
+    <div class="hero-visual">
+      <div class="detect-card">
+        <div class="detect-card-header">
+          <span class="detect-card-title">Live Scan · M3-ID</span>
+          <div class="live-indicator"><div class="live-dot"></div>Scanning</div>
+        </div>
+
+        <div class="detect-face-area">
+          <div class="scan-ring scan-ring-1"></div>
+          <div class="scan-ring scan-ring-2"></div>
+          <div class="scan-ring scan-ring-3"></div>
+          <div class="face-icon-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+          </div>
+          <div class="scan-beam"></div>
+          <div class="scan-corner tl"></div>
+          <div class="scan-corner tr"></div>
+          <div class="scan-corner bl"></div>
+          <div class="scan-corner br"></div>
+        </div>
+
+        <div class="detect-scores">
+          <div class="detect-score-row">
+            <span class="dsr-label">Face Integrity</span>
+            <div class="dsr-track"><div class="dsr-fill" style="width:22%;background:var(--danger)"></div></div>
+            <span class="dsr-val" style="color:var(--danger)">22%</span>
+          </div>
+          <div class="detect-score-row">
+            <span class="dsr-label">Voice Authenticity</span>
+            <div class="dsr-track"><div class="dsr-fill" style="width:31%;background:var(--danger)"></div></div>
+            <span class="dsr-val" style="color:var(--danger)">31%</span>
+          </div>
+          <div class="detect-score-row">
+            <span class="dsr-label">Linguistic Patterns</span>
+            <div class="dsr-track"><div class="dsr-fill" style="width:18%;background:var(--danger)"></div></div>
+            <span class="dsr-val" style="color:var(--danger)">18%</span>
+          </div>
+          <div class="detect-score-row">
+            <span class="dsr-label">Fusion Score</span>
+            <div class="dsr-track"><div class="dsr-fill" style="width:23%;background:var(--danger)"></div></div>
+            <span class="dsr-val" style="color:var(--danger)">23%</span>
+          </div>
+        </div>
+
+        <div class="detect-verdict danger">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          CRITICAL — Deepfake Detected (Score 23%)
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ───────────────────────────────────────────────── -->
+<section id="features" class="features-section">
+  <div class="section-center">
+    <span class="section-eyebrow">Detection Modules</span>
+    <h2 class="section-heading">Three pipelines.<br/>One verdict.</h2>
+    <p class="section-sub">Each module targets a different attack surface. Together they make DeepShield adversarially robust.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card" style="--fc-color:var(--accent)">
+      <div class="feature-icon-wrap" style="background:var(--accent-subtle);border-color:rgba(59,110,245,0.2);color:var(--accent)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+      </div>
+      <div class="feature-num">01 / Face Detection</div>
+      <h3 class="feature-title">EfficientNet-B4 Visual Analysis</h3>
+      <p class="feature-desc">MediaPipe extracts face crops from every frame. EfficientNet-B4 fine-tuned on FaceForensics++ and Celeb-DF-v2 detects GAN artifacts, blending boundaries, and texture anomalies with AUC-ROC above 0.95.</p>
+      <div class="feature-tags">
+        <span class="feature-tag">EfficientNet-B4</span>
+        <span class="feature-tag">MediaPipe</span>
+        <span class="feature-tag">FaceForensics++</span>
+        <span class="feature-tag">Celeb-DF-v2</span>
+      </div>
+    </div>
+
+    <div class="feature-card" style="--fc-color:var(--success)">
+      <div class="feature-icon-wrap" style="background:var(--success-subtle);border-color:rgba(18,183,106,0.2);color:var(--success)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+      </div>
+      <div class="feature-num">02 / Voice Analysis</div>
+      <h3 class="feature-title">AASIST Voice Spoof Detection</h3>
+      <p class="feature-desc">Log-Mel spectrograms and MFCCs feed the AASIST graph attention network fine-tuned on ASVspoof 2021. Detects TTS synthesis, voice conversion, and neural vocoder artifacts with EER below 5%.</p>
+      <div class="feature-tags">
+        <span class="feature-tag">AASIST</span>
+        <span class="feature-tag">ASVspoof 2021</span>
+        <span class="feature-tag">MFCC</span>
+        <span class="feature-tag">Log-Mel</span>
+      </div>
+    </div>
+
+    <div class="feature-card" style="--fc-color:var(--warning)">
+      <div class="feature-icon-wrap" style="background:var(--warning-subtle);border-color:rgba(245,158,11,0.2);color:var(--warning)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <div class="feature-num">03 / Linguistic NLP</div>
+      <h3 class="feature-title">BERT Linguistic Pattern Analysis</h3>
+      <p class="feature-desc">Fine-tuned BERT on HC3 dataset classifies AI-generated vs human text. Statistical fallback measures filler word density, bigram entropy, type-token ratio, and passive voice ratio for offline analysis.</p>
+      <div class="feature-tags">
+        <span class="feature-tag">BERT</span>
+        <span class="feature-tag">HC3 Dataset</span>
+        <span class="feature-tag">Bigram Entropy</span>
+        <span class="feature-tag">TF-IDF</span>
+      </div>
+    </div>
+
+    <div class="feature-card" style="--fc-color:var(--info)">
+      <div class="feature-icon-wrap" style="background:var(--info-subtle);border-color:rgba(14,165,233,0.2);color:var(--info)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="feature-num">04 / Risk Fusion</div>
+      <h3 class="feature-title">MLP Fusion Engine with XAI</h3>
+      <p class="feature-desc">A trained MLP combines Face (35%), Voice (35%), and NLP (30%) scores with anomaly boosting. Outputs a calibrated authenticity probability, confidence intervals, alert severity, and XAI evidence bullets.</p>
+      <div class="feature-tags">
+        <span class="feature-tag">MLP Fusion</span>
+        <span class="feature-tag">XAI</span>
+        <span class="feature-tag">Confidence Intervals</span>
+        <span class="feature-tag">WebSocket</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PIPELINE ────────────────────────────────────────────────── -->
+<section id="pipeline" class="pipeline-section">
+  <div class="pipeline-inner">
+    <div class="section-center">
+      <span class="section-eyebrow">How It Works</span>
+      <h2 class="section-heading">From upload to verdict in seconds</h2>
+    </div>
+
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="pipeline-step-num">01</div>
+        <div class="pipeline-step-title">Upload Media</div>
+        <div class="pipeline-step-desc">Drop a video, audio file, or paste text. Drag-drop supported.</div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon" style="color:var(--success)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </div>
+        <div class="pipeline-step-num">02</div>
+        <div class="pipeline-step-title">3 Modules Run in Parallel</div>
+        <div class="pipeline-step-desc">Face, Voice, and NLP pipelines process simultaneously via FastAPI.</div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon" style="color:var(--warning)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="pipeline-step-num">03</div>
+        <div class="pipeline-step-title">MLP Fusion</div>
+        <div class="pipeline-step-desc">Scores fused with learned weights, anomaly boosting applied.</div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon" style="color:var(--info)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="pipeline-step-num">04</div>
+        <div class="pipeline-step-title">Verdict + XAI</div>
+        <div class="pipeline-step-desc">Calibrated score, confidence interval, severity alert, and evidence panel returned live via WebSocket.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TECH STACK ──────────────────────────────────────────────── -->
+<section id="tech" class="tech-section">
+  <div class="section-center">
+    <span class="section-eyebrow">Technology Stack</span>
+    <h2 class="section-heading">Built with production-grade tools</h2>
+  </div>
+
+  <div class="tech-grid">
+    <div class="tech-group">
+      <div class="tech-group-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        Computer Vision & AI
+      </div>
+      <div class="tech-pills">
+        <span class="tech-pill">EfficientNet-B4</span>
+        <span class="tech-pill">XceptionNet</span>
+        <span class="tech-pill">MediaPipe</span>
+        <span class="tech-pill">SyncNet</span>
+        <span class="tech-pill">OpenCV</span>
+        <span class="tech-pill">PyTorch 2.x</span>
+        <span class="tech-pill">timm</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="tech-group-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
+        Audio & Speech
+      </div>
+      <div class="tech-pills">
+        <span class="tech-pill">AASIST</span>
+        <span class="tech-pill">ASVspoof 2021</span>
+        <span class="tech-pill">Librosa</span>
+        <span class="tech-pill">Log-Mel</span>
+        <span class="tech-pill">MFCC</span>
+        <span class="tech-pill">SoundFile</span>
+        <span class="tech-pill">VoxCeleb2</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="tech-group-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        NLP & Linguistics
+      </div>
+      <div class="tech-pills">
+        <span class="tech-pill">BERT</span>
+        <span class="tech-pill">HuggingFace</span>
+        <span class="tech-pill">HC3 Dataset</span>
+        <span class="tech-pill">TF-IDF</span>
+        <span class="tech-pill">Bigram Entropy</span>
+        <span class="tech-pill">Transformers</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="tech-group-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Backend & Frontend
+      </div>
+      <div class="tech-pills">
+        <span class="tech-pill">FastAPI</span>
+        <span class="tech-pill">WebSocket</span>
+        <span class="tech-pill">SQLAlchemy</span>
+        <span class="tech-pill">JWT Auth</span>
+        <span class="tech-pill">Chart.js</span>
+        <span class="tech-pill">Docker</span>
+        <span class="tech-pill">SQLite</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ────────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="cta-inner">
+    <h2 class="cta-title">Start protecting identities today</h2>
+    <p class="cta-sub">Sign up free and run your first multi-modal deepfake scan in under 60 seconds.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="pages/signup.html" class="hero-btn-primary" style="font-size:16px;padding:16px 32px">
+        Create free account
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="pages/login.html" class="hero-btn-ghost" style="font-size:16px;padding:16px 28px">Sign in</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────── -->
+<footer class="landing-footer">
+  <div class="footer-copy">
+    &copy; 2026 DeepShield M3-ID · Pranveer Singh Institute of Technology · Team 27_CS_CYS_4A_09
+  </div>
+  <div class="footer-links">
+    <a href="pages/dashboard.html" class="footer-link">Dashboard</a>
+    <a href="pages/login.html"     class="footer-link">Sign In</a>
+    <a href="pages/signup.html"    class="footer-link">Sign Up</a>
+    <a href="#"                    class="footer-link">API Docs</a>
+  </div>
+</footer>
+
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/utils.js"></script>
+<script>
+// Navbar scroll effect
+window.addEventListener("scroll", () => {
+  document.getElementById("landing-nav").classList.toggle("scrolled", window.scrollY > 20);
+});
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener("click", e => {
+    const target = document.querySelector(a.getAttribute("href"));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior:"smooth" }); }
+  });
+});
+// Reveal animations
+observeReveal(".feature-card", "page-enter");
+observeReveal(".pipeline-step", "page-enter");
+observeReveal(".tech-group", "page-enter");
+</script>
+
+</body>
+</html>
