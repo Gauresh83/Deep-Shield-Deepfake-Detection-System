@@ -4,7 +4,7 @@ WORKDIR /app
 
 # System deps for OpenCV + librosa
 RUN apt-get update && apt-get install -y \
-    ffmpeg libsm6 libxext6 libgl1-mesa-glx \
+    ffmpeg libsm6 libxext6 libgl1 libglib2.0-0 \
     --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt .
