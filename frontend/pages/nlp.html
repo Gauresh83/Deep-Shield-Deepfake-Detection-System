@@ -1,242 +1,336 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="../assets/css/design-system.css"/>
-  <link rel="stylesheet" href="../assets/css/layout.css"/>
-  <link rel="stylesheet" href="../assets/css/components.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/layout.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <title>Linguistic NLP — DeepShield</title>
 </head>
+
 <body>
-<div class="app-shell">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="nav-brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-      <span class="brand-name">Deep<span>Shield</span></span>
-    </div>
-    <div class="sidebar-scroll">
-      <div class="nav-section">
-        <span class="nav-section-label">Overview</span>
-        <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label">Dashboard</span></a>
-        <a href="history.html" class="nav-item" data-page="history"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label">Scan History</span></a>
-        <a href="alerts.html" class="nav-item" data-page="alerts"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg></span><span class="nav-label">Alerts</span></a>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="nav-brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg></div>
+        <span class="brand-name">Deep<span>Shield</span></span>
       </div>
-      <div class="nav-section">
-        <span class="nav-section-label">Detection</span>
-        <a href="fusion.html" class="nav-item" data-page="fusion"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nav-label">Risk Fusion</span></a>
-        <a href="face.html" class="nav-item" data-page="face"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg></span><span class="nav-label">Face Detection</span></a>
-        <a href="voice.html" class="nav-item" data-page="voice"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg></span><span class="nav-label">Voice Analysis</span></a>
-        <a href="nlp.html" class="nav-item" data-page="nlp"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span><span class="nav-label">Linguistic NLP</span></a>
-      </div>
-    </div>
-    <div class="sidebar-footer">
-      <div class="user-block" onclick="logout()">
-        <div class="user-avatar" data-user-avatar>DS</div>
-        <div class="user-info"><div class="user-name" data-user-name>Demo User</div><div class="user-role" data-user-role>Security Researcher</div></div>
-        <div class="user-more"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></div>
-      </div>
-    </div>
-  </aside>
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
-  <header class="topbar">
-    <div class="topbar-left">
-      <button class="topbar-icon-btn" id="mobile-menu-btn" onclick="openSidebar()" style="display:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-      <div><div class="topbar-title">Linguistic NLP</div><div class="topbar-sub">BERT-based AI text detection</div></div>
-    </div>
-    <div class="topbar-right">
-      <a href="fusion.html" class="topbar-action primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>New Scan</a>
-      <div class="theme-switcher"><button class="topbar-icon-btn" id="themeBtn" onclick="toggleThemeMenu('tm-nlp')"><span class="theme-btn-icon" style="display:flex"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 010 20V2z" fill="currentColor" opacity=".15"/></svg></span></button>
-      <div class="theme-menu" id="tm-nlp"><div style="padding:6px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)">Appearance</div><div id="tm-nlp-items"></div></div></div>
-    </div>
-  </header>
-  <main class="main-content"><div class="page-body page-enter">
-
-    <div style="background:var(--warning-subtle);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;display:flex;align-items:flex-start;gap:16px">
-      <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:650;color:var(--text-primary);margin-bottom:4px">BERT Linguistic Pattern Analysis</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Fine-tuned BERT on HC3 dataset classifies AI-generated vs human text. Statistical fallback measures filler density, bigram entropy, type-token ratio and passive voice ratio — works completely offline without model weights.</div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0"><span class="badge badge-warning">BERT</span><span class="badge badge-warning">HC3</span><span class="badge badge-warning">Statistical NLP</span></div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 380px;gap:20px">
-      <div class="section-card">
-        <div class="section-header">
-          <span class="section-title">Enter Text or Transcript</span>
-          <span class="badge badge-neutral" id="nlp-status-badge">Checking...</span>
+      <div class="sidebar-scroll">
+        <div class="nav-section">
+          <span class="nav-section-label">Overview</span>
+          <a href="dashboard.html" class="nav-item" data-page="dashboard"><span class="nav-icon"><svg width="16"
+                height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg></span><span class="nav-label">Dashboard</span></a>
+          <a href="history.html" class="nav-item" data-page="history"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg></span><span class="nav-label">Scan History</span></a>
+          <a href="alerts.html" class="nav-item" data-page="alerts"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" />
+              </svg></span><span class="nav-label">Alerts</span></a>
         </div>
-        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-          <textarea id="nlp-text" placeholder="Paste any text here: CEO speech, phone call transcript, email content, interview answers..." style="width:100%;min-height:220px;padding:14px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;line-height:1.7;resize:vertical;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--border-focus)'" onblur="this.style.borderColor='var(--border)'" oninput="updateWordCount(this)"></textarea>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span id="word-count" style="font-size:12px;font-family:var(--font-mono);color:var(--text-tertiary)">0 words</span>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-ghost btn-xs" onclick="loadSample('human')">Human</button>
-              <button class="btn btn-ghost btn-xs" onclick="loadSample('ai')">AI Sample</button>
-              <button class="btn btn-ghost btn-xs" onclick="loadSample('ceo')">CEO Fraud</button>
-            </div>
+        <div class="nav-section">
+          <span class="nav-section-label">Detection</span>
+          <a href="fusion.html" class="nav-item" data-page="fusion"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg></span><span class="nav-label">Risk Fusion</span></a>
+          <a href="face.html" class="nav-item" data-page="face"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="5" />
+                <path d="M20 21a8 8 0 10-16 0" />
+              </svg></span><span class="nav-label">Face Detection</span></a>
+          <a href="voice.html" class="nav-item" data-page="voice"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+              </svg></span><span class="nav-label">Voice Analysis</span></a>
+          <a href="nlp.html" class="nav-item" data-page="nlp"><span class="nav-icon"><svg width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg></span><span class="nav-label">Linguistic NLP</span></a>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-block" onclick="toggleUserMenu(event)" style="position:relative;cursor:pointer">
+          <div class="user-avatar" data-user-avatar>DS</div>
+          <div class="user-info">
+            <div class="user-name" data-user-name>Demo User</div>
+            <div class="user-role" data-user-role>Security Researcher</div>
           </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end">
-            <button class="btn btn-ghost btn-sm" onclick="clearNLP()">Clear</button>
-            <button class="btn btn-primary" id="nlp-btn" onclick="nlpAnalyse()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Analyse Text
+          <div class="user-more">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+          </div>
+          <div id="user-dropdown-menu"
+            style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;right:0;background:var(--bg-elevated,#1a1d29);border:1px solid var(--border,#2a2d3a);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;z-index:50">
+            <button onclick="logout()"
+              style="width:100%;text-align:left;padding:11px 14px;background:none;border:none;color:var(--danger,#ef4444);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Logout
             </button>
           </div>
         </div>
-        <div style="padding:0 20px 20px;border-top:1px solid var(--border);padding-top:16px">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:10px">Active Features</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox" checked style="accent-color:var(--accent)"/> Filler word density</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox" checked style="accent-color:var(--accent)"/> AI phrase markers</label>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input type="checkbox" checked style="accent-color:var(--accent)"/> Passive voice ratio</label>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-icon-btn" id="mobile-menu-btn" onclick="openSidebar()" style="display:none"><svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg></button>
+        <div>
+          <div class="topbar-title">Linguistic NLP</div>
+          <div class="topbar-sub">BERT-based AI text detection</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <a href="fusion.html" class="topbar-action primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>New Scan</a>
+        <div class="theme-switcher"><button class="topbar-icon-btn" id="themeBtn"
+            onclick="toggleThemeMenu('tm-nlp')"><span class="theme-btn-icon" style="display:flex"><svg width="15"
+                height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a10 10 0 010 20V2z" fill="currentColor" opacity=".15" />
+              </svg></span></button>
+          <div class="theme-menu" id="tm-nlp">
+            <div
+              style="padding:6px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)">
+              Appearance</div>
+            <div id="tm-nlp-items"></div>
           </div>
         </div>
       </div>
+    </header>
+    <main class="main-content">
+      <div class="page-body page-enter">
 
-      <div class="section-card">
-        <div class="section-header"><span class="section-title">NLP Analysis Result</span></div>
-        <div id="nlp-no-result" style="padding:48px 20px;text-align:center;color:var(--text-tertiary)">
-          <div style="width:52px;height:52px;border-radius:var(--radius-xl);background:var(--bg-subtle);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Awaiting Input</div>
-          <div style="font-size:13px">Enter text and click Analyse</div>
+        <div
+          style="background:var(--warning-subtle);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;display:flex;align-items:flex-start;gap:16px">
+          <div
+            style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg></div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:650;color:var(--text-primary);margin-bottom:4px">BERT Linguistic
+              Pattern Analysis</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Fine-tuned BERT on HC3 dataset
+              classifies AI-generated vs human text. Statistical fallback measures filler density, bigram entropy,
+              type-token ratio and passive voice ratio — works completely offline without model weights.</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0"><span
+              class="badge badge-warning">BERT</span><span class="badge badge-warning">HC3</span><span
+              class="badge badge-warning">Statistical NLP</span></div>
         </div>
-        <div id="nlp-result-body" style="display:none;padding:20px;flex-direction:column;gap:16px"></div>
-      </div>
-    </div>
 
-  </div></main>
-</div>
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px">
+          <div class="section-card">
+            <div class="section-header">
+              <span class="section-title">Enter Text or Transcript</span>
+              <span class="badge badge-neutral" id="nlp-status-badge">Checking...</span>
+            </div>
+            <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+              <textarea id="nlp-text"
+                placeholder="Paste any text here: CEO speech, phone call transcript, email content, interview answers..."
+                style="width:100%;min-height:220px;padding:14px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;line-height:1.7;resize:vertical;outline:none;transition:border-color .2s"
+                onfocus="this.style.borderColor='var(--border-focus)'" onblur="this.style.borderColor='var(--border)'"
+                oninput="updateWordCount(this)"></textarea>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span id="word-count" style="font-size:12px;font-family:var(--font-mono);color:var(--text-tertiary)">0
+                  words</span>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-xs" onclick="loadSample('human')">Human</button>
+                  <button class="btn btn-ghost btn-xs" onclick="loadSample('ai')">AI Sample</button>
+                  <button class="btn btn-ghost btn-xs" onclick="loadSample('ceo')">CEO Fraud</button>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button class="btn btn-ghost btn-sm" onclick="clearNLP()">Clear</button>
+                <button class="btn btn-primary" id="nlp-btn" onclick="nlpAnalyse()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  Analyse Text
+                </button>
+              </div>
+            </div>
+            <div style="padding:0 20px 20px;border-top:1px solid var(--border);padding-top:16px">
+              <div
+                style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:10px">
+                Active Features</div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <label
+                  style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input
+                    type="checkbox" checked style="accent-color:var(--accent)" /> Filler word density</label>
+                <label
+                  style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input
+                    type="checkbox" checked style="accent-color:var(--accent)" /> AI phrase markers</label>
+                <label
+                  style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);cursor:pointer"><input
+                    type="checkbox" checked style="accent-color:var(--accent)" /> Passive voice ratio</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-header"><span class="section-title">NLP Analysis Result</span></div>
+            <div id="nlp-no-result" style="padding:48px 20px;text-align:center;color:var(--text-tertiary)">
+              <div
+                style="width:52px;height:52px;border-radius:var(--radius-xl);background:var(--bg-subtle);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg></div>
+              <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Awaiting Input
+              </div>
+              <div style="font-size:13px">Enter text and click Analyse</div>
+            </div>
+            <div id="nlp-result-body" style="display:none;padding:20px;flex-direction:column;gap:16px"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
   <script src="../assets/js/theme.js"></script>
   <script src="../assets/js/utils.js"></script>
   <script src="../assets/js/api.js"></script>
-<script>
-(function(){const u=requireAuth("login.html");if(!u)return;setUserUI(u);initMobileSidebar();document.querySelectorAll(".nav-item[data-page]").forEach(el=>el.classList.toggle("active",el.dataset.page==="nlp"));})();
+  <script>
+    (function () { const u = requireAuth("login.html"); if (!u) return; setUserUI(u); initMobileSidebar(); document.querySelectorAll(".nav-item[data-page]").forEach(el => el.classList.toggle("active", el.dataset.page === "nlp")); })();
 
-const NLP_SAMPLES = {
-  human: "So, uh, basically what happened is, um, we had this meeting last Tuesday and like, I mean, the whole thing just fell apart. You know what I mean? It was just super chaotic. Honestly I did not even know where to start.",
-  ai: "Certainly, I understand your concern and I appreciate you bringing this to my attention. It is important to note that the implementation of the proposed solution will facilitate a comprehensive improvement in operational efficiency. Furthermore, it is worth mentioning that all stakeholders have been thoroughly informed. In conclusion, I would like to ensure we leverage all available resources.",
-  ceo: "Hello, this is Robert Chen CEO of Meridian Capital. I am calling to authorize an urgent wire transfer of four hundred and fifty thousand dollars to our overseas partner. This matter is strictly confidential and must be executed immediately without informing our legal team.",
-};
+    const NLP_SAMPLES = {
+      human: "So, uh, basically what happened is, um, we had this meeting last Tuesday and like, I mean, the whole thing just fell apart. You know what I mean? It was just super chaotic. Honestly I did not even know where to start.",
+      ai: "Certainly, I understand your concern and I appreciate you bringing this to my attention. It is important to note that the implementation of the proposed solution will facilitate a comprehensive improvement in operational efficiency. Furthermore, it is worth mentioning that all stakeholders have been thoroughly informed. In conclusion, I would like to ensure we leverage all available resources.",
+      ceo: "Hello, this is Robert Chen CEO of Meridian Capital. I am calling to authorize an urgent wire transfer of four hundred and fifty thousand dollars to our overseas partner. This matter is strictly confidential and must be executed immediately without informing our legal team.",
+    };
 
-function loadSample(key) {
-  const ta = document.getElementById("nlp-text");
-  ta.value = NLP_SAMPLES[key] || "";
-  updateWordCount(ta);
-  showToast("Sample loaded: " + key.replace("_"," "), "info", 2000);
-}
+    function loadSample(key) {
+      const ta = document.getElementById("nlp-text");
+      ta.value = NLP_SAMPLES[key] || "";
+      updateWordCount(ta);
+      showToast("Sample loaded: " + key.replace("_", " "), "info", 2000);
+    }
 
-function updateWordCount(el) {
-  const text = el.value.trim();
-  const words = text ? text.split(/\s+/).length : 0;
-  document.getElementById("word-count").textContent = words + " words";
-  document.getElementById("nlp-btn").disabled = words < 5;
-}
+    function updateWordCount(el) {
+      const text = el.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      document.getElementById("word-count").textContent = words + " words";
+      document.getElementById("nlp-btn").disabled = words < 5;
+    }
 
-function clearNLP() {
-  document.getElementById("nlp-text").value = "";
-  document.getElementById("word-count").textContent = "0 words";
-  document.getElementById("nlp-no-result").style.display = "block";
-  document.getElementById("nlp-result-body").style.display = "none";
-}
+    function clearNLP() {
+      document.getElementById("nlp-text").value = "";
+      document.getElementById("word-count").textContent = "0 words";
+      document.getElementById("nlp-no-result").style.display = "block";
+      document.getElementById("nlp-result-body").style.display = "none";
+    }
 
-async function checkNLPStatus() {
-  try {
-    const d = await api.get("/api/nlp/status");
-    const b = document.getElementById("nlp-status-badge");
-    b.textContent = d.model_loaded ? "BERT Active" : "Statistical Mode";
-    b.className = "badge " + (d.model_loaded ? "badge-success" : "badge-accent");
-  } catch(e) { document.getElementById("nlp-status-badge").textContent = "Demo Mode"; }
-}
-checkNLPStatus();
+    async function checkNLPStatus() {
+      try {
+        const d = await api.get("/api/nlp/status");
+        const b = document.getElementById("nlp-status-badge");
+        b.textContent = d.model_loaded ? "BERT Active" : "Statistical Mode";
+        b.className = "badge " + (d.model_loaded ? "badge-success" : "badge-accent");
+      } catch (e) { document.getElementById("nlp-status-badge").textContent = "Demo Mode"; }
+    }
+    checkNLPStatus();
 
-async function nlpAnalyse() {
-  const text = document.getElementById("nlp-text").value.trim();
-  if (!text || text.split(/\s+/).length < 5) { showToast("Enter at least 5 words","warning"); return; }
-  const btn = document.getElementById("nlp-btn");
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Analysing...';
-  showToast("Running linguistic analysis...","info",2500);
-  await new Promise(r => setTimeout(r, 1800));
-  const result = runClientNLP(text);
-  renderNLPResult(result);
-  btn.disabled = false;
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyse Text';
-}
+    async function nlpAnalyse() {
+      const text = document.getElementById("nlp-text").value.trim();
+      if (!text || text.split(/\s+/).length < 5) { showToast("Enter at least 5 words", "warning"); return; }
+      const btn = document.getElementById("nlp-btn");
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:14px;height:14px"></div> Analysing...';
+      showToast("Running linguistic analysis...", "info", 2500);
+      try {
+        const resp = await api.post("/api/nlp/analyze", { text: text });
+        if (resp.detail) throw new Error(typeof resp.detail === "string" ? resp.detail : JSON.stringify(resp.detail));
+        renderNLPResult(resp.analysis, resp.summary);
+      } catch (err) {
+        showToast("Analysis failed: " + err.message, "error", 4000);
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analyse Text';
+    }
 
-function runClientNLP(text) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const wc = words.length;
-  const uniqueWords = new Set(words.map(function(w){ return w.toLowerCase().replace(/[^a-z]/g,""); })).size;
-  const ttrVal = uniqueWords / Math.max(1, wc);
-  const fillers = ["um","uh","like","you know","i mean","basically","honestly","right","well","anyway"];
-  const aiMarkers = ["certainly","absolutely","furthermore","moreover","in conclusion","utilize","leverage","ensure","facilitate","comprehensive","straightforward"];
-  const tl = text.toLowerCase();
-  const fillerCount = fillers.filter(function(f){ return tl.indexOf(f) !== -1; }).length;
-  const aiCount = aiMarkers.filter(function(m){ return tl.indexOf(m) !== -1; }).length;
-  const fd = fillerCount / Math.max(1, wc);
-  const sentences = text.split(/[.!?]+/).filter(function(s){ return s.trim().length > 0; });
-  const avgSL = wc / Math.max(1, sentences.length);
-  var score = 65 + fd * 2000 + Math.min(15, fillerCount * 5) - aiCount * 8;
-  if (ttrVal > 0.85) score -= 15;
-  if (avgSL > 25) score -= 10;
-  score = Math.max(5, Math.min(98, Math.round(score)));
-  var anomalies = [];
-  if (fd < 0.005) anomalies.push("Near-zero filler words — atypical of natural speech");
-  if (ttrVal > 0.85) anomalies.push("High vocabulary diversity (TTR " + ttrVal.toFixed(2) + ") — AI pattern");
-  if (aiCount >= 3) anomalies.push(aiCount + " AI-typical marker phrases detected");
-  if (avgSL > 25) anomalies.push("Very long sentences (avg " + avgSL.toFixed(1) + " words)");
-  return {
-    score: score,
-    ttr: ttrVal.toFixed(3),
-    filler_pct: Math.min(fd * 2000, 100),
-    ai_marker_count: aiCount,
-    filler_count: fillerCount,
-    word_count: wc,
-    sentence_count: sentences.length,
-    anomalies: anomalies,
-    ai_probability: 100 - score,
-    avg_sentence_len: avgSL.toFixed(1)
-  };
-}
+    function renderNLPResult(a, summary) {
+      document.getElementById("nlp-no-result").style.display = "none";
+      const body = document.getElementById("nlp-result-body");
+      body.style.display = "flex";
+      const score = Math.round(summary.score);
+      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "suspicious" : "fake");
+      const vcMap = { authentic: "CLEAR", suspicious: "MEDIUM", fake: "CRITICAL" };
+      const labelMap = { authentic: "Natural Human Language", suspicious: "Mixed Signals — Review", fake: "AI-Generated Text Detected" };
+      const color = scoreColor(score);
 
-function renderNLPResult(r) {
-  document.getElementById("nlp-no-result").style.display = "none";
-  const body = document.getElementById("nlp-result-body");
-  body.style.display = "flex";
-  const verdict = r.score >= 70 ? "authentic" : r.score >= 45 ? "suspicious" : "fake";
-  const vcMap = {authentic:"CLEAR", suspicious:"MEDIUM", fake:"CRITICAL"};
-  const labelMap = {authentic:"Natural Human Language", suspicious:"Mixed Signals — Review", fake:"AI-Generated Text Detected"};
-  const color = scoreColor(r.score);
+      const r = {
+        score: score,
+        word_count: summary.word_count ?? a.word_count,
+        sentence_count: a.sentence_count,
+        ai_marker_count: a.ai_marker_count,
+        anomalies: summary.anomalous_features ?? a.anomalous_features ?? []
+      };
 
-  const meters = [
-    ["Filler Word Presence", Math.min(r.filler_pct, 100), "var(--success)"],
-    ["AI Phrase Markers", Math.min(r.ai_marker_count * 20, 100), "var(--danger)"],
-    ["Vocabulary Diversity", Math.min(parseFloat(r.ttr) * 100, 100), "var(--warning)"],
-    ["AI Generation Probability", r.ai_probability, "var(--danger)"]
-  ];
+      const meters = [
+        ["Filler Word Presence", Math.min((a.filler_word_density || 0) * 100, 100), "var(--success)"],
+        ["AI Phrase Markers", Math.min((a.ai_marker_count || 0) * 20, 100), "var(--danger)"],
+        ["Vocabulary Diversity", Math.min((a.type_token_ratio || 0) * 100, 100), "var(--warning)"],
+        ["AI Generation Probability", summary.ai_generated_probability ?? a.ai_generated_probability, "var(--danger)"]
+      ];
 
-  const meterHTML = meters.map(function(m) {
-    return '<div class="meter-row"><div class="meter-header"><span class="meter-label">' + m[0] + '</span><span class="meter-value" style="color:' + m[2] + '">' + Math.round(m[1]) + '%</span></div><div class="meter-track"><div class="meter-fill" style="background:' + m[2] + ';width:' + Math.round(m[1]) + '%"></div></div></div>';
-  }).join("");
+      const meterHTML = meters.map(function (m) {
+        return '<div class="meter-row"><div class="meter-header"><span class="meter-label">' + m[0] + '</span><span class="meter-value" style="color:' + m[2] + '">' + Math.round(m[1]) + '%</span></div><div class="meter-track"><div class="meter-fill" style="background:' + m[2] + ';width:' + Math.round(m[1]) + '%"></div></div></div>';
+      }).join("");
 
-  const anomalyHTML = r.anomalies.length
-    ? '<div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px">Anomalies</div><div class="evidence-list">' +
-        r.anomalies.map(function(a){ return '<div class="evidence-item fake"><svg class="evidence-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>' + a + '</div>'; }).join("") +
-      '</div></div>'
-    : '<div style="font-size:12px;color:var(--text-tertiary);text-align:center">No significant anomalies detected</div>';
+      const anomalyHTML = r.anomalies.length
+        ? '<div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px">Anomalies</div><div class="evidence-list">' +
+        r.anomalies.map(function (a) { return '<div class="evidence-item fake"><svg class="evidence-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>' + a + '</div>'; }).join("") +
+        '</div></div>'
+        : '<div style="font-size:12px;color:var(--text-tertiary);text-align:center">No significant anomalies detected</div>';
 
-  const statsHTML = [["Words", r.word_count], ["Sentences", r.sentence_count], ["AI Markers", r.ai_marker_count]]
-    .map(function(s){ return '<div style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text-primary)">' + s[1] + '</div><div style="font-size:11px;color:var(--text-tertiary)">' + s[0] + '</div></div>'; }).join("");
+      const statsHTML = [["Words", r.word_count], ["Sentences", r.sentence_count], ["AI Markers", r.ai_marker_count]]
+        .map(function (s) { return '<div style="background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px;text-align:center"><div style="font-size:18px;font-weight:700;color:var(--text-primary)">' + s[1] + '</div><div style="font-size:11px;color:var(--text-tertiary)">' + s[0] + '</div></div>'; }).join("");
 
-  body.innerHTML =
-    '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;font-weight:700;letter-spacing:-0.04em;color:' + color + ';line-height:1">' + r.score + '%</div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-top:5px">Linguistic Authenticity</div></div>' +
-    '<div class="severity-badge ' + vcMap[verdict] + '" style="width:100%;justify-content:center">' + labelMap[verdict] + '</div>' +
-    '<div class="scan-meter">' + meterHTML + '</div>' +
-    anomalyHTML +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' + statsHTML + '</div>';
-}
-</script>
+      body.innerHTML =
+        '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;font-weight:700;letter-spacing:-0.04em;color:' + color + ';line-height:1">' + r.score + '%</div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-top:5px">Linguistic Authenticity</div></div>' +
+        '<div class="severity-badge ' + vcMap[verdict] + '" style="width:100%;justify-content:center">' + labelMap[verdict] + '</div>' +
+        '<div class="scan-meter">' + meterHTML + '</div>' +
+        anomalyHTML +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' + statsHTML + '</div>';
+    }
+  </script>
 </body>
+
 </html>
