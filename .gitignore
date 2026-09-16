@@ -25,7 +25,7 @@ backend/uploads/*
 backend/modules/face/weights/*.pt
 backend/modules/face/weights/*.pth
 backend/modules/voice/weights/*.pt
-
+backend/modules/nlp/weights/*.pt
 # IDE
 .DS_Store
 Thumbs.db
