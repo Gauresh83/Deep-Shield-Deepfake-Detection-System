@@ -68,7 +68,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL, "http://localhost:5500",
-                   "http://127.0.0.1:5500", "http://localhost:3000", "null"],
+                   "http://127.0.0.1:5500", "http://localhost:3000",
+                   "http://localhost", "http://127.0.0.1", "null"],
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
