@@ -12,9 +12,10 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 const api = {
-  get:  (ep)       => apiRequest(ep),
+  get: (ep) => apiRequest(ep),
   post: (ep, body) => apiRequest(ep, { method: "POST", body: JSON.stringify(body) }),
-  del:  (ep)       => apiRequest(ep, { method: "DELETE" }),
+  patch: (ep, body) => apiRequest(ep, { method: "PATCH", body: body != null ? JSON.stringify(body) : undefined }),
+  del: (ep) => apiRequest(ep, { method: "DELETE" }),
   postForm: (ep, fd) => {
     const token = getToken();
     return fetch(API_BASE + ep, { method: "POST", headers: token && !token.startsWith("demo_") ? { Authorization: `Bearer ${token}` } : {}, body: fd }).then(r => r.json());

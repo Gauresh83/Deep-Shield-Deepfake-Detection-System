@@ -3,9 +3,9 @@
 /* ── Toast notifications ─────────────────────────────────────── */
 const TOAST_ICONS = {
   success: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#12B76A" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-  error:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  error: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   warning: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-  info:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  info: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
 };
 
 function showToast(message, type = "info", duration = 4000, title = null) {
@@ -90,9 +90,9 @@ function timeAgo(date) {
   const diff = Date.now() - new Date(date).getTime();
   const s = Math.floor(diff / 1000);
   if (s < 60) return "just now";
-  if (s < 3600) return Math.floor(s/60) + "m ago";
-  if (s < 86400) return Math.floor(s/3600) + "h ago";
-  return Math.floor(s/86400) + "d ago";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
 }
 function scoreColor(score) {
   if (score >= 70) return "var(--success)";
@@ -105,7 +105,7 @@ function scoreClass(score) {
   return "low";
 }
 function verdictClass(v) {
-  return {authentic:"success",suspicious:"warning",fake:"danger",pending:"neutral"}[v] || "neutral";
+  return { authentic: "success", suspicious: "warning", fake: "danger", pending: "neutral" }[v] || "neutral";
 }
 
 /* ── Auth helpers ────────────────────────────────────────────── */
@@ -123,15 +123,30 @@ function requireAuth(redirectTo = "login.html") {
 }
 function setUserUI(user) {
   document.querySelectorAll("[data-user-name]").forEach(el => el.textContent = user.name || "User");
-  document.querySelectorAll("[data-user-avatar]").forEach(el => el.textContent = (user.avatar || user.name?.slice(0,2) || "U").toUpperCase());
+  document.querySelectorAll("[data-user-avatar]").forEach(el => el.textContent = (user.avatar || user.name?.slice(0, 2) || "U").toUpperCase());
   document.querySelectorAll("[data-user-role]").forEach(el => el.textContent = user.role || "Researcher");
 }
 function logout() {
-  ["m3id_user","m3id_access_token","m3id_refresh_token"].forEach(k => {
+  ["m3id_user", "m3id_access_token", "m3id_refresh_token"].forEach(k => {
     localStorage.removeItem(k); sessionStorage.removeItem(k);
   });
   window.location.href = "../pages/login.html";
 }
+
+/* ── User menu dropdown ─────────────────────────────────────────── */
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById("user-dropdown-menu");
+  if (!menu) return;
+  const isOpen = menu.style.display === "block";
+  menu.style.display = isOpen ? "none" : "block";
+}
+document.addEventListener("click", (e) => {
+  const menu = document.getElementById("user-dropdown-menu");
+  if (menu && menu.style.display === "block" && !menu.contains(e.target)) {
+    menu.style.display = "none";
+  }
+});
 
 /* ── Drag-drop ───────────────────────────────────────────────── */
 function initDropzone(dzId, onFile) {
@@ -146,9 +161,10 @@ function initDropzone(dzId, onFile) {
   });
 }
 
-window.showToast=showToast; window.animateNumber=animateNumber; window.animateBar=animateBar;
-window.observeReveal=observeReveal; window.initMobileSidebar=initMobileSidebar;
-window.formatBytes=formatBytes; window.timeAgo=timeAgo; window.scoreColor=scoreColor;
-window.scoreClass=scoreClass; window.verdictClass=verdictClass;
-window.getUser=getUser; window.getToken=getToken; window.requireAuth=requireAuth;
-window.setUserUI=setUserUI; window.logout=logout; window.initDropzone=initDropzone;
+window.showToast = showToast; window.animateNumber = animateNumber; window.animateBar = animateBar;
+window.observeReveal = observeReveal; window.initMobileSidebar = initMobileSidebar;
+window.formatBytes = formatBytes; window.timeAgo = timeAgo; window.scoreColor = scoreColor;
+window.scoreClass = scoreClass; window.verdictClass = verdictClass;
+window.getUser = getUser; window.getToken = getToken; window.requireAuth = requireAuth;
+window.setUserUI = setUserUI; window.logout = logout; window.initDropzone = initDropzone;
+window.toggleUserMenu = toggleUserMenu;
