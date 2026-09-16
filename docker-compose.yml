@@ -12,9 +12,10 @@ services:
       - UPLOAD_DIR=backend/uploads
       - SECRET_KEY=change-me-in-production
       - DEBUG=False
+      - GOOGLE_CLIENT_ID=1019873866031-3injl55v9k7o4dhprabd76q2o23jj4o7.apps.googleusercontent.com
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
