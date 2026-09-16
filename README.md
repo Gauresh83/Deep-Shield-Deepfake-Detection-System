@@ -1,10 +1,7 @@
-<<<<<<< HEAD
 # M3-ID — Multi-Modal Identity Defender
 ## Complete Combined Project — All 7 Parts Integrated
-=======
 # Deep-Shield-Deepfake-Detection-system
 # M3-ID — Multi-Modal Identity Defender
->>>>>>> ff9162dafcc9245cdae446d4b0491b8e216a9f5c
 
 > Detects AI-generated voice clones, deepfake faces, and synthetic text using a multi-modal fusion engine.
 
@@ -24,8 +21,6 @@
 
 ---
 
-<<<<<<< HEAD
-=======
 
 ## TEAM DETAILS AND WORK DIVISION
 
@@ -37,7 +32,6 @@
 | 4 |	Aryan Tiwari | Backend & API | FastAPI development, WebSocket real-time streaming, JWT authentication, database design, Docker deployment |
 | 5 |	Anand Kumar | Frontend & Integration | React.js dashboard, Chart.js visualisations, alert system, system testing, documentation |
 
->>>>>>> ff9162dafcc9245cdae446d4b0491b8e216a9f5c
 ## Project Structure
 
 ```
@@ -106,11 +100,8 @@ m3id/
 
 ---
 
-<<<<<<< HEAD
 ### Step 1 — Open the Project in VS Code
-=======
 ### Step 1 — Open the Project in VS Code    
->>>>>>> ff9162dafcc9245cdae446d4b0491b8e216a9f5c
 
 1. Unzip `M3-ID_Combined.zip` to a folder (e.g. `C:\Projects\m3id`)
 2. Open **VS Code**
