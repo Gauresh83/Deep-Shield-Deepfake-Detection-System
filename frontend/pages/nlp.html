@@ -118,16 +118,25 @@
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>New Scan</a>
-        <div class="theme-switcher"><button class="topbar-icon-btn" id="themeBtn"
-            onclick="toggleThemeMenu('tm-nlp')"><span class="theme-btn-icon" style="display:flex"><svg width="15"
-                height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="theme-switcher">
+          <button class="theme-trigger" id="themeBtn" type="button" aria-haspopup="listbox" aria-expanded="false"
+            aria-controls="tm-nlp" onclick="toggleThemeMenu('tm-nlp')">
+            <span class="theme-trigger-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 2a10 10 0 010 20V2z" fill="currentColor" opacity=".15" />
-              </svg></span></button>
-          <div class="theme-menu" id="tm-nlp">
-            <div
-              style="padding:6px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)">
-              Appearance</div>
+              </svg>
+            </span>
+            <span class="theme-trigger-label">Theme</span>
+            <svg class="theme-trigger-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <div class="theme-menu" id="tm-nlp" role="listbox" aria-label="Select theme">
+            <div class="theme-menu-label">Appearance</div>
             <div id="tm-nlp-items"></div>
           </div>
         </div>
@@ -142,7 +151,8 @@
             style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg></div>
+            </svg>
+          </div>
           <div style="flex:1">
             <div style="font-size:14px;font-weight:650;color:var(--text-primary);margin-bottom:4px">BERT Linguistic
               Pattern Analysis</div>
@@ -212,7 +222,8 @@
                 style="width:52px;height:52px;border-radius:var(--radius-xl);background:var(--bg-subtle);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                </svg></div>
+                </svg>
+              </div>
               <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Awaiting Input
               </div>
               <div style="font-size:13px">Enter text and click Analyse</div>

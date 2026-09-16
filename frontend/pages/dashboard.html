@@ -176,19 +176,24 @@
 
         <!-- Theme switcher -->
         <div class="theme-switcher">
-          <button class="topbar-icon-btn" id="themeBtn" onclick="toggleThemeMenu('theme-menu')" data-tip="Change theme">
-            <span class="theme-btn-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          <button class="theme-trigger" id="themeBtn" type="button" aria-haspopup="listbox" aria-expanded="false"
+            aria-controls="theme-menu" onclick="toggleThemeMenu('theme-menu')">
+            <span class="theme-trigger-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 2a10 10 0 010 20V2z" fill="currentColor" opacity=".15" />
               </svg>
             </span>
+            <span class="theme-trigger-label">Theme</span>
+            <svg class="theme-trigger-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
-          <div class="theme-menu" id="theme-menu">
-            <div
-              style="padding:6px 10px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary)">
-              Appearance</div>
+          <div class="theme-menu" id="theme-menu" role="listbox" aria-label="Select theme">
+            <div class="theme-menu-label">Appearance</div>
             <div id="theme-menu-items"></div>
           </div>
         </div>
