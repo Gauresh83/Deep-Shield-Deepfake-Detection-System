@@ -127,6 +127,7 @@ function setUserUI(user) {
   document.querySelectorAll("[data-user-role]").forEach(el => el.textContent = user.role || "Researcher");
 }
 function logout() {
+  if (!confirm("Are you sure you want to log out?")) return;
   ["m3id_user", "m3id_access_token", "m3id_refresh_token"].forEach(k => {
     localStorage.removeItem(k); sessionStorage.removeItem(k);
   });
