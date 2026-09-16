@@ -20,15 +20,15 @@
 ---
 
 
-## TEAM DETAILS AND WORK DIVISION
+## 👥 Team & Responsibilities
 
-| S.No. | Name | Module | Key Responsibilities |
-|------|--------|--------|---------------------|
-| 1 |	Gauresh Kumar Chaubey | Visual Deepfake Module | EfficientNet-B4 fine-tuning, FaceForensics++ preprocessing, frame-level inference pipeline, MediaPipe integration|
-| 2 |	Ish Dubey	| Voice Spoof Module | AASIST model fine-tuning, ASVspoof 2021 dataset, MFCC / Log-Mel feature extraction, VoxCeleb2 integration |
-| 3 | Janhvi Yadav | Lip-Sync & Fusion | SyncNet implementation, audio-visual alignment, MLP fusion layer training, XAI evidence generation |
-| 4 |	Aryan Tiwari | Backend & API | FastAPI development, WebSocket real-time streaming, JWT authentication, database design, Docker deployment |
-| 5 |	Anand Kumar | Frontend & Integration | React.js dashboard, Chart.js visualisations, alert system, system testing, documentation |
+| S. No. | Team Member               | Module / Role                     | Key Responsibilities                                                                                                                                          |
+| :----: | ------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|    1   | **Gauresh Kumar Chaubey** | **Visual Deepfake Detection**     | EfficientNet-B4 fine-tuning, FaceForensics++ preprocessing, frame-level inference pipeline, and MediaPipe integration                                         |
+|    2   | **Ish Dubey**             | **Voice Spoof Detection**         | AASIST model fine-tuning, ASVspoof 2021 dataset processing, MFCC/Log-Mel feature extraction, and VoxCeleb2 integration                                        |
+|    3   | **Aryan Tiwari**          | **Lip-Sync & Multimodal Fusion**  | SyncNet implementation, audio-visual alignment, MLP-based fusion layer training, and XAI evidence generation                                                  |
+|    4   | **Janhvi Yadav**          | **Backend & API Development**     | FastAPI development, WebSocket-based real-time streaming, JWT authentication, database design, and Docker deployment                                          |
+|    5   | **Anand Kumar**           | **Frontend & System Integration** | React.js dashboard development, Chart.js visualizations, alert system implementation, frontend-backend integration, system testing, and project documentation |
 
 ## Project Structure
 
