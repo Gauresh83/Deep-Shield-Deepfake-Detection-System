@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import secrets
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from ..models.user import User
@@ -30,6 +31,47 @@ def login_user(db, data):
                          refresh_token=create_refresh_token(td),
                          token_type="bearer",
                          expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES*60)
+
+def google_login(db, credential: str):
+    from google.oauth2 import id_token as google_id_token
+    from google.auth.transport import requests as google_requests
+
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(500, "Google login is not configured on the server.")
+
+    try:
+        payload = google_id_token.verify_oauth2_token(
+            credential, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
+    except ValueError:
+        raise HTTPException(401, "Invalid Google credential.")
+
+    email = payload.get("email")
+    if not email or not payload.get("email_verified", False):
+        raise HTTPException(401, "Google account email is not verified.")
+
+    user = db.query(User).filter(User.email == email.lower()).first()
+    if not user:
+        first_name = payload.get("given_name") or payload.get("name", "Google").split(" ")[0]
+        last_name = payload.get("family_name") or "User"
+        user = User(
+            email=email.lower(),
+            hashed_password=hash_password(secrets.token_urlsafe(32)),  # unusable random password
+            first_name=first_name.strip(), last_name=last_name.strip(),
+            role="User", is_verified=True,
+            avatar_initials=(first_name[0] + last_name[0]).upper(),
+        )
+        db.add(user); db.commit(); db.refresh(user)
+
+    if not user.is_active:
+        raise HTTPException(400, "Account deactivated.")
+
+    user.last_login = datetime.now(timezone.utc); db.commit()
+    td = {"sub": str(user.id), "email": user.email}
+    return TokenResponse(access_token=create_access_token(td),
+                         refresh_token=create_refresh_token(td),
+                         token_type="bearer",
+                         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES*60)
+
 
 def refresh_access_token(refresh_token, db):
     from ..core.security import decode_token

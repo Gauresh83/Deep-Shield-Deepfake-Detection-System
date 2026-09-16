@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.security import get_current_active_user
-from ..schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest, PasswordChangeRequest
+from ..schemas.auth import RegisterRequest, LoginRequest, TokenResponse, RefreshRequest, PasswordChangeRequest, GoogleLoginRequest
 from ..schemas.user import UserPublic
-from ..services.auth_service import register_user, login_user, refresh_access_token, change_password
+from ..services.auth_service import register_user, login_user, refresh_access_token, change_password, google_login
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -16,6 +16,10 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     return login_user(db, data)
+
+@router.post("/google", response_model=TokenResponse)
+def google(data: GoogleLoginRequest, db: Session = Depends(get_db)):
+    return google_login(db, data.credential)
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
