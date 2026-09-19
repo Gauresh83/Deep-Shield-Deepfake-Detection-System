@@ -3,17 +3,30 @@ M3-ID Voice Clone Detection Module — Part 3
 =============================================
 Architecture:
   1. Audio loading & pre-processing  (librosa)
-  2. MFCC feature extraction         (13 coefficients + delta + delta-delta)
+  2. MFCC feature extraction         (13 coefficients, z-score normalized)
   3. Spectrogram & chroma features
-  4. Classification model            (CNN-LSTM when models present, 
+  4. Classification model            (CNN-LSTM when models present,
                                       rule-based heuristics as fallback)
   5. Result packaging with full details
 
-Real model weights (ASVspoof 2019 trained) can be dropped into:
+Real model weights (trained on RVC + modern TTS datasets) can be dropped into:
   backend/modules/voice/weights/voice_model.pt
+
+Calibrated verdict thresholds (produced during training) can be dropped into:
+  backend/modules/voice/weights/voice_thresholds.json
+  -> {"authentic_threshold": <float>, "fake_threshold": <float>}
+  If this file is absent, sensible defaults (70 / 45) are used.
 
 When weights are absent the module runs an advanced signal-analysis
 heuristic that examines real audio properties — NOT random numbers.
+
+Inference notes:
+  - Audio is analyzed in overlapping 3-second windows (chunked inference)
+    so that clips of any length (short voice notes or long calls) are
+    handled consistently, matching how the model was trained.
+  - MFCC features are z-score normalized per chunk before being fed to
+    the model — this exactly matches the training pipeline, so there is
+    no train/inference mismatch.
 """
 
 import os
@@ -61,7 +74,9 @@ class VoiceDetector:
     Voice Clone Detection Engine.
 
     When PyTorch + librosa are installed and model weights exist:
-        → Runs full CNN-LSTM pipeline on MFCC features (ASVspoof 2019 trained)
+        → Runs full CNN-LSTM pipeline on normalized MFCC features,
+          using chunked (windowed) inference for robustness to
+          variable-length audio.
 
     Otherwise:
         → Runs signal-level heuristic analysis on raw PCM / WAV data.
@@ -69,6 +84,11 @@ class VoiceDetector:
     """
 
     WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "voice_model.pt")
+    THRESHOLDS_PATH = os.path.join(os.path.dirname(__file__), "weights", "voice_thresholds.json")
+
+    # Chunked inference window settings — must match training (3s window, 1.5s hop)
+    WINDOW_SEC = 3.0
+    HOP_SEC = 1.5
 
     def __init__(self):
         self.model = None
@@ -96,7 +116,7 @@ class VoiceDetector:
         """Load trained CNN-LSTM weights if available."""
         try:
             import torch
-            # Model architecture (matches ASVspoof training setup)
+            # Model architecture (matches training setup)
             self.model = self._build_model()
             state = torch.load(self.WEIGHTS_PATH, map_location="cpu")
             self.model.load_state_dict(state)
@@ -110,7 +130,7 @@ class VoiceDetector:
     def _build_model(self):
         """
         CNN-LSTM architecture for voice spoof detection.
-        Input:  (batch, 1, 13, T)  — MFCC spectrogram
+        Input:  (batch, 1, 13, T)  — normalized MFCC spectrogram
         Output: (batch, 1)          — spoof probability
         """
         import torch.nn as nn
@@ -173,29 +193,52 @@ class VoiceDetector:
         return result
 
     def _analyze_with_model(self, file_path: str) -> VoiceAnalysisResult:
-        """Full CNN-LSTM inference pipeline."""
+        """
+        Full CNN-LSTM inference pipeline — chunked (windowed) inference over
+        the whole clip, with per-chunk z-score normalized MFCC. This matches
+        the training pipeline exactly, so there is no train/inference skew,
+        and it handles clips of any length (short notes or long calls).
+        """
         import torch
         import librosa
         import numpy as np
 
         y, sr = librosa.load(file_path, sr=16000, mono=True)
-        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, n_fft=512, hop_length=160)
-        mfcc_delta = librosa.feature.delta(mfcc)
-        mfcc_delta2 = librosa.feature.delta(mfcc, order=2)
-        features = np.vstack([mfcc, mfcc_delta, mfcc_delta2])  # (39, T)
 
-        # Normalize
-        features = (features - features.mean()) / (features.std() + 1e-8)
+        window_samples = int(sr * self.WINDOW_SEC)
+        hop_samples = int(sr * self.HOP_SEC)
 
-        # Reshape for model: (1, 1, 13, T)  — use only base MFCCs
-        x = torch.tensor(mfcc[np.newaxis, np.newaxis, :, :], dtype=torch.float32)
+        if len(y) < window_samples:
+            y = np.pad(y, (0, window_samples - len(y)))
 
-        with torch.no_grad():
-            spoof_prob = self.model(x).item()  # 0=real, 1=spoof
+        chunk_probs = []
+        start_idx = 0
+        while True:
+            chunk = y[start_idx:start_idx + window_samples]
+            if len(chunk) < window_samples:
+                chunk = np.pad(chunk, (0, window_samples - len(chunk)))
+
+            mfcc = librosa.feature.mfcc(y=chunk, sr=sr, n_mfcc=13, n_fft=512, hop_length=160)
+            mfcc_norm = (mfcc - mfcc.mean()) / (mfcc.std() + 1e-8)  # per-chunk z-score, matches training
+
+            x = torch.tensor(mfcc_norm[np.newaxis, np.newaxis, :, :], dtype=torch.float32)
+            with torch.no_grad():
+                prob = self.model(x).item()  # 0=real, 1=spoof
+            chunk_probs.append(prob)
+
+            if start_idx + window_samples >= len(y):
+                break
+            start_idx += hop_samples
+            if start_idx + window_samples > len(y):
+                start_idx = max(len(y) - window_samples, 0)  # cover the tail exactly once
+
+        chunk_probs = np.array(chunk_probs)
+        spoof_prob = float(chunk_probs.mean())
+        max_spoof_prob = float(chunk_probs.max())  # most suspicious segment in the clip
 
         authenticity_score = round((1 - spoof_prob) * 100, 2)
 
-        # Additional signal features for explainability
+        # Additional signal features for explainability (computed on full clip)
         spectral = self._spectral_consistency(y, sr)
         pitch = self._pitch_naturalness(y, sr)
         temporal = self._temporal_coherence(y, sr)
@@ -211,14 +254,16 @@ class VoiceDetector:
             spectral_consistency=spectral,
             pitch_naturalness=pitch,
             temporal_coherence=temporal,
-            clone_probability=round(spoof_prob * 100, 2),
+            # Blend mean + worst-segment spoof probability so one bad
+            # segment in a long clip isn't averaged away entirely.
+            clone_probability=round(max(spoof_prob, max_spoof_prob * 0.7) * 100, 2),
             duration_seconds=round(len(y) / sr, 2),
             sample_rate=sr,
             num_channels=1,
             bit_depth=16,
             frame_count=len(y),
-            model_used="CNN-LSTM (ASVspoof 2019 trained)",
-            features_extracted=39 * mfcc.shape[1],
+            model_used=f"CNN-LSTM ({len(chunk_probs)} window{'s' if len(chunk_probs) != 1 else ''}, chunked inference)",
+            features_extracted=13 * len(chunk_probs),
             model_loaded=True,
         )
 
@@ -426,17 +471,37 @@ class VoiceDetector:
         except Exception:
             return 50.0
 
-    @staticmethod
-    def _score_to_verdict(score: float):
-        if score >= 70:
+    # ── Verdict thresholds (calibrated per trained model) ──────────────────────
+
+    def _load_thresholds(self):
+        """
+        Load calibrated verdict thresholds produced during training
+        (see train_voice_model.py::calibrate_thresholds), falling back to
+        sensible defaults if the calibration file is not present.
+        """
+        if os.path.exists(self.THRESHOLDS_PATH):
+            try:
+                with open(self.THRESHOLDS_PATH) as f:
+                    cfg = json.load(f)
+                return cfg.get("authentic_threshold", 70), cfg.get("fake_threshold", 45)
+            except Exception as e:
+                print(f"[VoiceDetector] Could not load thresholds, using defaults: {e}")
+        return 70, 45
+
+    def _score_to_verdict(self, score: float):
+        authentic_th, fake_th = self._load_thresholds()
+
+        if score >= authentic_th:
             verdict = "authentic"
-            confidence = min((score - 70) / 30 * 100, 99.9)
-        elif score >= 45:
+            span = max(100 - authentic_th, 1e-8)
+            confidence = min((score - authentic_th) / span * 100, 99.9)
+        elif score >= fake_th:
             verdict = "suspicious"
             confidence = 50.0
         else:
             verdict = "fake"
-            confidence = min((45 - score) / 45 * 100, 99.9)
+            span = max(fake_th, 1e-8)
+            confidence = min((fake_th - score) / span * 100, 99.9)
         return verdict, round(confidence, 2)
 
 
