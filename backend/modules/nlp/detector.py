@@ -6,7 +6,7 @@ Detects AI-generated, scripted, or unnatural speech patterns in text.
 Architecture (best available, auto-selected):
 
 Tier 1 — BERT classifier (when transformers installed):
-  • Fine-tuned bert-base-uncased binary classifier
+  • Fine-tuned DistilBERT binary classifier (HC3 + M4 + RAID)
   • Input: tokenized transcript (max 512 tokens)
   • Output: probability of AI/synthetic origin
 
@@ -119,7 +119,7 @@ class NLPDetector:
     Tier 2: Statistical + TF-IDF heuristics (always works, no pip installs needed)
     """
 
-    WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "nlp_model.pt")
+    WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "nlp_model")
     VOCAB_PATH   = os.path.join(os.path.dirname(__file__), "weights", "tfidf_vocab.json")
 
     def __init__(self):
@@ -156,14 +156,11 @@ class NLPDetector:
         try:
             import torch
             from transformers import AutoTokenizer, AutoModelForSequenceClassification
-            self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                "bert-base-uncased", num_labels=2)
-            state = torch.load(self.WEIGHTS_PATH, map_location="cpu")
-            self.model.load_state_dict(state)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.WEIGHTS_PATH)
+            self.model = AutoModelForSequenceClassification.from_pretrained(self.WEIGHTS_PATH)
             self.model.eval()
             self.model_loaded = True
-            print("[NLPDetector] BERT weights loaded.")
+            print(f"[NLPDetector] {self.model.config.model_type.upper()} weights loaded from {self.WEIGHTS_PATH}.")
         except Exception as e:
             print(f"[NLPDetector] Could not load BERT weights: {e}")
 
@@ -186,10 +183,10 @@ class NLPDetector:
 
     def _analyze_with_bert(self, text: str) -> NLPAnalysisResult:
         import torch
-        # Tokenize (truncate to 512 tokens)
+        # Tokenize (truncate to 256 tokens, matching training)
         inputs = self.tokenizer(
             text, return_tensors="pt", truncation=True,
-            max_length=512, padding=True)
+            max_length=256, padding=True)
         with torch.no_grad():
             logits = self.model(**inputs).logits
             probs  = torch.softmax(logits, dim=-1)[0]
