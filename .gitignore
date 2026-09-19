@@ -21,11 +21,20 @@ build/
 backend/uploads/*
 !backend/uploads/.gitkeep
 
-# ML model weights
+# ML model weights — face
 backend/modules/face/weights/*.pt
 backend/modules/face/weights/*.pth
+
+# ML model weights — voice (keep calibrated thresholds, ignore heavy weights)
 backend/modules/voice/weights/*.pt
+!backend/modules/voice/weights/voice_thresholds.json
+
+# ML model weights — NLP (HuggingFace format: config, safetensors, tokenizer, etc.)
+backend/modules/nlp/weights/nlp_model/
 backend/modules/nlp/weights/*.pt
+backend/modules/nlp/weights/*.safetensors
+backend/modules/nlp/weights/*.bin
+
 # IDE
 .DS_Store
 Thumbs.db
