@@ -29,12 +29,11 @@ backend/modules/face/weights/*.pth
 backend/modules/voice/weights/*.pt
 !backend/modules/voice/weights/voice_thresholds.json
 
-# ML model weights — NLP (HuggingFace format: config, safetensors, tokenizer, etc.)
-backend/modules/nlp/weights/nlp_model/
+# ML Model Weights — NLP
+backend/modules/nlp/weights/
 backend/modules/nlp/weights/*.pt
 backend/modules/nlp/weights/*.safetensors
 backend/modules/nlp/weights/*.bin
-
 # IDE
 .DS_Store
 Thumbs.db
