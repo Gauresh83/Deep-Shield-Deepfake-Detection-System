@@ -1,32 +1,21 @@
-version: "3.9"
+# Phase 1: database only. The backend and frontend services are added in Phase 11
+# once there is a complete application to containerise.
 services:
-  m3id-backend:
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend/uploads:/app/backend/uploads
-      - ./backend/m3id.db:/app/backend/m3id.db
+  postgres:
+    image: postgres:16-alpine
     environment:
-      - DATABASE_URL=sqlite:///./backend/m3id.db
-      - UPLOAD_DIR=backend/uploads
-      - SECRET_KEY=change-me-in-production
-      - DEBUG=False
-      - GOOGLE_CLIENT_ID=1019873866031-3injl55v9k7o4dhprabd76q2o23jj4o7.apps.googleusercontent.com
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  m3id-nginx:
-    image: nginx:alpine
+      POSTGRES_USER: ${POSTGRES_USER:-accesspath}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-accesspath}
+      POSTGRES_DB: ${POSTGRES_DB:-accesspath}
     ports:
-      - "80:80"
+      - "5432:5432"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./frontend:/usr/share/nginx/html
-    depends_on:
-      - m3id-backend
-    restart: unless-stopped
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-accesspath} -d $${POSTGRES_DB:-accesspath}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
