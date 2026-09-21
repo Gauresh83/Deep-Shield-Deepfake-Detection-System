@@ -74,7 +74,7 @@ HUMAN_MARKER_PHRASES = [
 @dataclass
 class NLPAnalysisResult:
     score: float                      # 0-100  (higher = more human/authentic)
-    verdict: str                      # authentic | suspicious | fake
+    verdict: str                      # authentic | uncertain | fake
     confidence: float                 # 0-100
 
     # Statistical features
@@ -107,6 +107,10 @@ class NLPAnalysisResult:
     model_loaded: bool = False
     processing_time_ms: int = 0
 
+    # ── Structured-gating fields (mirrors the face module's Phase 0 pattern) ──
+    status: str = "ANALYZED"   # ANALYZED | INSUFFICIENT_TEXT
+    message: str = ""
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -119,7 +123,11 @@ class NLPDetector:
     Tier 2: Statistical + TF-IDF heuristics (always works, no pip installs needed)
     """
 
-    WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "nlp_model")
+    # NOTE: unlike a typical HF save_pretrained() layout, this repo keeps every
+    # module's weight files directly inside modules/<name>/weights/ (flat,
+    # matching the face/voice modules' convention) rather than in a named
+    # subfolder — so this points straight at weights/, not weights/nlp_model/.
+    WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights")
     VOCAB_PATH   = os.path.join(os.path.dirname(__file__), "weights", "tfidf_vocab.json")
 
     def __init__(self):
@@ -166,10 +174,43 @@ class NLPDetector:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    # Minimum text length below which statistical features (TTR, sentence-length
+    # variance, filler-density) are mathematically unreliable — e.g. TTR is
+    # guaranteed to be ~1.0 for any short sentence with no repeated words,
+    # which has nothing to do with AI-generation. This mirrors the face
+    # module's Phase 0 "don't classify what you can't reliably classify" gate.
+    MIN_WORD_COUNT = 25
+    MIN_SENTENCE_COUNT = 2
+
     def analyze_text(self, text: str) -> NLPAnalysisResult:
         """Main entry — analyze text and return full NLP result."""
         start = time.time()
         text = text.strip()
+
+        word_count = len(text.split())
+        sentence_count = len(self._split_sentences(text))
+
+        if word_count < self.MIN_WORD_COUNT or sentence_count < self.MIN_SENTENCE_COUNT:
+            result = NLPAnalysisResult(
+                status="INSUFFICIENT_TEXT", verdict="uncertain",
+                message=(f"Text is too short ({word_count} words, {sentence_count} "
+                          f"sentence{'s' if sentence_count != 1 else ''}) for a reliable "
+                          f"linguistic analysis. Statistical features like vocabulary "
+                          f"diversity and sentence-length variance need at least "
+                          f"~{self.MIN_WORD_COUNT} words across {self.MIN_SENTENCE_COUNT}+ "
+                          f"sentences to be meaningful — shorter text will look "
+                          f"artificially \"suspicious\" no matter who wrote it."),
+                score=0.0, confidence=0.0,
+                perplexity_proxy=0.0, type_token_ratio=0.0, avg_sentence_length=0.0,
+                sentence_len_variance=0.0, filler_word_density=0.0, passive_voice_ratio=0.0,
+                repetition_score=0.0, punctuation_density=0.0, ai_marker_count=0,
+                human_marker_count=0, ai_generated_probability=0.0,
+                word_count=word_count, sentence_count=sentence_count, unique_words=0,
+                avg_word_length=0.0, text_length=len(text),
+                model_used="N/A — text too short to analyze", model_loaded=self.model_loaded,
+                processing_time_ms=int((time.time() - start) * 1000),
+            )
+            return result
 
         if self.model_loaded:
             result = self._analyze_with_bert(text)
@@ -187,6 +228,15 @@ class NLPDetector:
         inputs = self.tokenizer(
             text, return_tensors="pt", truncation=True,
             max_length=256, padding=True)
+
+        # DistilBERT's forward() does not accept token_type_ids (BERT does,
+        # DistilBERT doesn't use segment embeddings at all) — but tokenizers
+        # add it by default. Strip anything the model's forward() signature
+        # doesn't actually accept, so this works for either architecture.
+        import inspect
+        accepted = set(inspect.signature(self.model.forward).parameters)
+        inputs = {k: v for k, v in inputs.items() if k in accepted}
+
         with torch.no_grad():
             logits = self.model(**inputs).logits
             probs  = torch.softmax(logits, dim=-1)[0]
@@ -349,8 +399,14 @@ class NLPDetector:
         }
 
     def _split_sentences(self, text: str) -> List[str]:
-        """Split text into sentences."""
-        sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+        """
+        Split text into sentences. Splits both on the normal '. ' (punctuation
+        + whitespace) pattern AND on punctuation immediately followed by a
+        capital letter with no space ('...technology.How are you...') — a
+        very common typo that would otherwise make two real sentences count
+        as one and incorrectly trip the short-text gate.
+        """
+        sentences = re.split(r"(?<=[.!?])\s+|(?<=[.!?])(?=[A-Z])", text.strip())
         return [s.strip() for s in sentences if s.strip()]
 
     def _variance(self, values: List[float]) -> float:
@@ -405,13 +461,25 @@ class NLPDetector:
             anomalous_features=stats.get("anomalies", []),
         )
 
-    @staticmethod
-    def _score_to_verdict(score: float) -> Tuple[str, float]:
-        if score >= 70:
-            return "authentic", round(min((score - 70) / 30 * 100, 99.9), 2)
-        if score >= 45:
-            return "suspicious", 50.0
-        return "fake", round(min((45 - score) / 45 * 100, 99.9), 2)
+    UNCERTAIN_LOW = 35.0
+    UNCERTAIN_HIGH = 65.0
+
+    @classmethod
+    def _score_to_verdict(cls, score: float) -> Tuple[str, float]:
+        """Same calibrated 3-band approach as the face module's detector.py —
+        a genuine 'uncertain' middle band instead of a forced binary split."""
+        if score >= cls.UNCERTAIN_HIGH:
+            span = 100 - cls.UNCERTAIN_HIGH
+            conf = 60 + min((score - cls.UNCERTAIN_HIGH) / span, 1.0) * 39
+            return "authentic", round(min(conf, 99.9), 2)
+        if score <= cls.UNCERTAIN_LOW:
+            span = cls.UNCERTAIN_LOW
+            conf = 60 + min((cls.UNCERTAIN_LOW - score) / span, 1.0) * 39
+            return "fake", round(min(conf, 99.9), 2)
+        dist_from_edge = min(score - cls.UNCERTAIN_LOW, cls.UNCERTAIN_HIGH - score)
+        band_half = (cls.UNCERTAIN_HIGH - cls.UNCERTAIN_LOW) / 2
+        conf = 45 - (dist_from_edge / band_half) * 30
+        return "uncertain", round(max(conf, 10.0), 2)
 
 
 # Singleton
