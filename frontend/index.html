@@ -1,1156 +1,2466 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DeepShield — Multi-Modal Deepfake Detection</title>
-<meta name="description" content="DeepShield combines face analysis, voice spoof detection, and linguistic AI analysis into one real-time verdict. Catch deepfakes before they fool anyone."/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepShield — Multi-Modal Deepfake Detection</title>
+  <meta name="description"
+    content="DeepShield combines face analysis, voice spoof detection, and linguistic AI analysis into one real-time verdict. Catch deepfakes before they fool anyone." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+    rel="stylesheet" />
 
-<style>
-/* ── RESET & BASE ─────────────────────────────────────────── */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-img{max-width:100%;display:block}
-a{text-decoration:none;color:inherit}
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-/* ── DESIGN TOKENS ───────────────────────────────────────── */
-:root{
-  /* Brand gradient: deep navy → electric blue → violet */
-  --c-navy:       #060B18;
-  --c-navy-2:     #0D1427;
-  --c-blue:       #1B5EF7;
-  --c-blue-light: #4B82FF;
-  --c-violet:     #7C3FE4;
-  --c-violet-2:   #9F6EFF;
-  --c-white:      #FFFFFF;
-  --c-offwhite:   #F7F8FC;
-  --c-gray-1:     #E8ECF7;
-  --c-gray-2:     #9AA5C4;
-  --c-gray-3:     #5A6585;
-  --c-text:       #0D1427;
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased
+    }
 
-  /* Gradients */
-  --g-hero:   linear-gradient(135deg, #060B18 0%, #0D1427 40%, #1a1060 70%, #0D1427 100%);
-  --g-accent: linear-gradient(135deg, #1B5EF7, #7C3FE4);
-  --g-card:   linear-gradient(160deg, rgba(27,94,247,0.08) 0%, rgba(124,63,228,0.04) 100%);
-  --g-logo:   linear-gradient(135deg, #1B5EF7 0%, #7C3FE4 100%);
+    img {
+      max-width: 100%;
+      display: block
+    }
 
-  /* Type */
-  --f-display: 'Syne', sans-serif;
-  --f-body:    'Inter', sans-serif;
+    a {
+      text-decoration: none;
+      color: inherit
+    }
 
-  /* Space */
-  --r-sm:  6px;
-  --r-md:  12px;
-  --r-lg:  20px;
-  --r-xl:  32px;
-  --r-pill:100px;
+    /* ── DESIGN TOKENS ───────────────────────────────────────── */
+    :root {
+      /* Brand gradient: deep navy → electric blue → violet */
+      --c-navy: #060B18;
+      --c-navy-2: #0D1427;
+      --c-blue: #1B5EF7;
+      --c-blue-light: #4B82FF;
+      --c-violet: #7C3FE4;
+      --c-violet-2: #9F6EFF;
+      --c-white: #FFFFFF;
+      --c-offwhite: #F7F8FC;
+      --c-gray-1: #E8ECF7;
+      --c-gray-2: #9AA5C4;
+      --c-gray-3: #5A6585;
+      --c-text: #0D1427;
 
-  /* Motion */
-  --ease-out: cubic-bezier(0.16,1,0.3,1);
-}
+      /* Gradients */
+      --g-hero: linear-gradient(135deg, #060B18 0%, #0D1427 40%, #1a1060 70%, #0D1427 100%);
+      --g-accent: linear-gradient(135deg, #1B5EF7, #7C3FE4);
+      --g-card: linear-gradient(160deg, rgba(27, 94, 247, 0.08) 0%, rgba(124, 63, 228, 0.04) 100%);
+      --g-logo: linear-gradient(135deg, #1B5EF7 0%, #7C3FE4 100%);
 
-body{
-  font-family: var(--f-body);
-  color: var(--c-text);
-  background: var(--c-white);
-  overflow-x: hidden;
-}
+      /* Type */
+      --f-display: 'Syne', sans-serif;
+      --f-body: 'Inter', sans-serif;
 
-/* ── TYPOGRAPHY ──────────────────────────────────────────── */
-.display-xl{font-family:var(--f-display);font-size:clamp(2.6rem,5.5vw,4.8rem);font-weight:800;line-height:1.08;letter-spacing:-0.03em}
-.display-lg{font-family:var(--f-display);font-size:clamp(2rem,4vw,3.2rem);font-weight:700;line-height:1.12;letter-spacing:-0.025em}
-.display-md{font-family:var(--f-display);font-size:clamp(1.4rem,2.5vw,2rem);font-weight:700;line-height:1.2;letter-spacing:-0.015em}
-.body-lg{font-size:1.125rem;line-height:1.7;color:var(--c-gray-2)}
-.body-md{font-size:1rem;line-height:1.65;color:var(--c-gray-3)}
-.label{font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-blue)}
+      /* Space */
+      --r-sm: 6px;
+      --r-md: 12px;
+      --r-lg: 20px;
+      --r-xl: 32px;
+      --r-pill: 100px;
 
-/* ── LAYOUT ──────────────────────────────────────────────── */
-.container{width:100%;max-width:1200px;margin:0 auto;padding:0 24px}
-.section{padding:96px 0}
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-/* ── NAV ─────────────────────────────────────────────────── */
-.nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;
-  padding:0 40px;height:68px;
-  display:flex;align-items:center;justify-content:space-between;
-  background:rgba(6,11,24,0.0);
-  backdrop-filter:blur(0px);
-  transition:background .3s, backdrop-filter .3s, border-color .3s;
-  border-bottom:1px solid transparent;
-}
-.nav.scrolled{
-  background:rgba(6,11,24,0.88);
-  backdrop-filter:blur(18px);
-  border-bottom-color:rgba(255,255,255,0.06);
-}
-.nav-logo{display:flex;align-items:center;gap:10px;color:#fff}
-.nav-logo-mark{
-  width:38px;height:38px;border-radius:10px;
-  background:var(--g-logo);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-}
-.nav-logo-text{font-family:var(--f-display);font-size:1.2rem;font-weight:700;color:#fff}
-.nav-logo-text span{color:var(--c-violet-2)}
-.nav-links{display:flex;align-items:center;gap:32px}
-.nav-links a{font-size:0.875rem;font-weight:500;color:rgba(255,255,255,0.7);transition:color .2s}
-.nav-links a:hover{color:#fff}
-.nav-cta{display:flex;align-items:center;gap:12px}
-.btn-ghost-nav{font-size:0.875rem;font-weight:500;color:rgba(255,255,255,0.75);padding:8px 16px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,0.15);transition:all .2s}
-.btn-ghost-nav:hover{background:rgba(255,255,255,0.08);color:#fff}
-.btn-primary-nav{font-size:0.875rem;font-weight:600;color:#fff;padding:9px 20px;border-radius:var(--r-pill);background:var(--g-accent);transition:opacity .2s;box-shadow:0 4px 20px rgba(27,94,247,0.35)}
-.btn-primary-nav:hover{opacity:0.88}
+    body {
+      font-family: var(--f-body);
+      color: var(--c-text);
+      background: var(--c-white);
+      overflow-x: hidden;
+    }
 
-/* ── HERO ─────────────────────────────────────────────────── */
-.hero{
-  min-height:100vh;
-  background:var(--g-hero);
-  display:flex;align-items:center;
-  position:relative;overflow:hidden;
-  padding-top:68px;
-}
-.hero-mesh{
-  position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 50%, rgba(27,94,247,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 70% at 80% 30%, rgba(124,63,228,0.22) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 50% 80%, rgba(75,130,255,0.12) 0%, transparent 60%);
-}
-.hero-grid-lines{
-  position:absolute;inset:0;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 100%);
-}
-.hero-inner{
-  position:relative;z-index:1;
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:60px;align-items:center;
-  width:100%;max-width:1200px;margin:0 auto;padding:80px 24px;
-}
-.hero-content{}
-.hero-badge{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:6px 14px 6px 8px;
-  background:rgba(27,94,247,0.12);
-  border:1px solid rgba(27,94,247,0.3);
-  border-radius:var(--r-pill);
-  margin-bottom:28px;
-}
-.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:#4B82FF;animation:pulse-dot 2s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-.hero-badge span{font-size:0.75rem;font-weight:600;color:#6B9EFF;letter-spacing:0.06em;text-transform:uppercase}
-.hero-title{color:#fff;margin-bottom:24px}
-.hero-title em{font-style:normal;background:var(--g-accent);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-sub{margin-bottom:40px;max-width:480px}
-.hero-sub p{font-size:1.1rem;line-height:1.75;color:rgba(255,255,255,0.6)}
-.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:56px}
-.btn-primary-hero{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:1rem;font-weight:600;color:#fff;
-  padding:14px 28px;border-radius:var(--r-pill);
-  background:var(--g-accent);
-  box-shadow:0 8px 32px rgba(27,94,247,0.4);
-  transition:transform .2s, box-shadow .2s;
-}
-.btn-primary-hero:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(27,94,247,0.5)}
-.btn-ghost-hero{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:1rem;font-weight:500;color:rgba(255,255,255,0.8);
-  padding:14px 24px;border-radius:var(--r-pill);
-  border:1px solid rgba(255,255,255,0.15);
-  transition:all .2s;
-}
-.btn-ghost-hero:hover{background:rgba(255,255,255,0.07);color:#fff}
-.hero-stats{display:flex;gap:0}
-.hero-stat{padding-right:32px;border-right:1px solid rgba(255,255,255,0.1)}
-.hero-stat:last-child{border-right:none;padding-right:0;padding-left:32px}
-.hero-stat:first-child{padding-left:0}
-.hero-stat-num{font-family:var(--f-display);font-size:2rem;font-weight:800;color:#fff;line-height:1}
-.hero-stat-num span{font-size:1.2rem;color:var(--c-blue-light)}
-.hero-stat-label{font-size:0.8rem;color:rgba(255,255,255,0.45);margin-top:4px;line-height:1.4}
+    /* ── TYPOGRAPHY ──────────────────────────────────────────── */
+    .display-xl {
+      font-family: var(--f-display);
+      font-size: clamp(2.6rem, 5.5vw, 4.8rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em
+    }
 
-/* Hero scan card */
-.hero-visual{position:relative;display:flex;justify-content:center;align-items:center}
-.scan-card{
-  width:100%;max-width:420px;
-  background:rgba(13,20,39,0.7);
-  border:1px solid rgba(75,130,255,0.2);
-  border-radius:24px;
-  padding:28px;
-  backdrop-filter:blur(20px);
-  box-shadow:0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
-  position:relative;overflow:hidden;
-}
-.scan-card::before{
-  content:'';position:absolute;top:-40%;left:-10%;
-  width:60%;height:60%;
-  background:radial-gradient(ellipse, rgba(27,94,247,0.15), transparent 70%);
-  pointer-events:none;
-}
-.scan-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.scan-card-title{font-family:var(--f-display);font-size:0.95rem;font-weight:700;color:#fff}
-.live-pill{display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:var(--r-pill)}
-.live-dot{width:6px;height:6px;border-radius:50%;background:#10B981;animation:pulse-dot 1.5s infinite}
-.live-pill span{font-size:0.7rem;font-weight:600;color:#10B981;letter-spacing:0.05em}
-.face-ring-area{display:flex;justify-content:center;margin:4px 0 24px;position:relative}
-.face-rings{position:relative;width:100px;height:100px;display:flex;align-items:center;justify-content:center}
-.ring{position:absolute;border-radius:50%;border:1px solid rgba(75,130,255,0.25);animation:spin-ring linear infinite}
-.ring-1{width:100px;height:100px;animation-duration:12s}
-.ring-2{width:76px;height:76px;border-color:rgba(124,63,228,0.3);animation-duration:8s;animation-direction:reverse}
-.ring-3{width:54px;height:54px;border-color:rgba(75,130,255,0.4);animation-duration:5s}
-@keyframes spin-ring{to{transform:rotate(360deg)}}
-.face-icon{width:44px;height:44px;border-radius:50%;background:var(--g-accent);display:flex;align-items:center;justify-content:center;z-index:1;box-shadow:0 0 30px rgba(27,94,247,0.4)}
-.scan-beam{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(75,130,255,0.8),transparent);animation:scan-beam 2.2s ease-in-out infinite;top:20px}
-@keyframes scan-beam{0%{top:0;opacity:0}20%{opacity:1}80%{opacity:1}100%{top:100%;opacity:0}}
-.score-bars{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
-.score-row{display:flex;align-items:center;gap:10px}
-.score-label{font-size:0.75rem;color:rgba(255,255,255,0.55);width:100px;flex-shrink:0}
-.score-track{flex:1;height:5px;background:rgba(255,255,255,0.07);border-radius:var(--r-pill);overflow:hidden}
-.score-fill{height:100%;border-radius:var(--r-pill);transition:width .8s var(--ease-out)}
-.score-pct{font-family:'Inter',monospace;font-size:0.75rem;font-weight:700;width:30px;text-align:right;flex-shrink:0}
-.verdict-banner{
-  display:flex;align-items:center;gap:10px;
-  padding:12px 16px;
-  border-radius:var(--r-md);
-  background:rgba(239,68,68,0.1);
-  border:1px solid rgba(239,68,68,0.25);
-}
-.verdict-icon{width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.verdict-text{font-size:0.82rem;font-weight:700;color:#F87171}
-.verdict-sub{font-size:0.72rem;color:rgba(239,68,68,0.65);margin-top:1px}
+    .display-lg {
+      font-family: var(--f-display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.025em
+    }
 
-/* ── TRUST BAR ───────────────────────────────────────────── */
-.trust-bar{
-  background:var(--c-offwhite);
-  border-top:1px solid var(--c-gray-1);
-  border-bottom:1px solid var(--c-gray-1);
-  padding:24px 0;
-}
-.trust-bar-inner{display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:10px}
-.trust-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.trust-label{font-size:0.82rem;font-weight:600;color:var(--c-gray-3)}
+    .display-md {
+      font-family: var(--f-display);
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.015em
+    }
 
-/* ── SECTIONS COMMON ─────────────────────────────────────── */
-.section-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
-  color:var(--c-blue);margin-bottom:16px;
-}
-.section-badge::before{content:'';display:block;width:16px;height:2px;background:var(--g-accent);border-radius:1px}
-.section-heading{margin-bottom:16px;color:var(--c-navy)}
-.section-sub{max-width:560px;color:var(--c-gray-3);font-size:1.05rem;line-height:1.7}
-.section-center{text-align:center;display:flex;flex-direction:column;align-items:center;margin-bottom:64px}
-.section-center .section-badge::before{display:none}
+    .body-lg {
+      font-size: 1.125rem;
+      line-height: 1.7;
+      color: var(--c-gray-2)
+    }
 
-/* ── FEATURES ────────────────────────────────────────────── */
-.features{background:#fff}
-.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
-.feature-card{
-  padding:36px;
-  border:1px solid var(--c-gray-1);
-  border-radius:var(--r-xl);
-  position:relative;overflow:hidden;
-  transition:border-color .25s, box-shadow .25s;
-  background:#fff;
-}
-.feature-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:var(--fc-grad,var(--g-accent));opacity:0;transition:opacity .25s;
-}
-.feature-card:hover{border-color:transparent;box-shadow:0 8px 48px rgba(27,94,247,0.1)}
-.feature-card:hover::before{opacity:1}
-.feature-card-num{font-size:0.7rem;font-weight:700;letter-spacing:0.1em;color:var(--c-gray-2);margin-bottom:20px}
-.feature-icon-ring{
-  width:52px;height:52px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:20px;
-  background:var(--fi-bg,rgba(27,94,247,0.08));
-}
-.feature-card h3{font-family:var(--f-display);font-size:1.15rem;font-weight:700;color:var(--c-navy);margin-bottom:10px;letter-spacing:-0.01em}
-.feature-card p{font-size:0.9rem;line-height:1.65;color:var(--c-gray-3);margin-bottom:20px}
-.feature-tags{display:flex;gap:6px;flex-wrap:wrap}
-.ftag{font-size:0.72rem;font-weight:600;padding:4px 10px;border-radius:var(--r-pill);background:var(--c-gray-1);color:var(--c-gray-3)}
+    .body-md {
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--c-gray-3)
+    }
 
-/* ── HOW IT WORKS ────────────────────────────────────────── */
-.how{background:var(--c-offwhite);border-top:1px solid var(--c-gray-1);border-bottom:1px solid var(--c-gray-1)}
-.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
-.steps-grid::before{
-  content:'';position:absolute;top:38px;left:12.5%;right:12.5%;
-  height:1px;background:var(--c-gray-1);z-index:0;
-}
-.step{text-align:center;padding:0 20px;position:relative;z-index:1}
-.step-num-circle{
-  width:76px;height:76px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  margin:0 auto 20px;
-  background:#fff;
-  border:1px solid var(--c-gray-1);
-  box-shadow:0 4px 16px rgba(0,0,0,0.06);
-  position:relative;
-}
-.step-num-circle svg{flex-shrink:0}
-.step-num{font-family:var(--f-display);font-size:0.7rem;font-weight:800;color:var(--c-blue);letter-spacing:0.08em;margin-bottom:8px}
-.step h3{font-family:var(--f-display);font-size:1rem;font-weight:700;color:var(--c-navy);margin-bottom:8px}
-.step p{font-size:0.85rem;line-height:1.6;color:var(--c-gray-3)}
+    .label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-blue)
+    }
 
-/* ── RESULTS ─────────────────────────────────────────────── */
-.results{background:#fff}
-.results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:48px}
-.metric-card{
-  padding:32px 24px;text-align:center;
-  border:1px solid var(--c-gray-1);border-radius:var(--r-xl);
-  position:relative;overflow:hidden;
-}
-.metric-card::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--mc-grad,var(--g-accent));
-}
-.metric-num{font-family:var(--f-display);font-size:2.6rem;font-weight:800;color:var(--mc-color,var(--c-blue));line-height:1;margin-bottom:4px}
-.metric-label{font-size:0.8rem;font-weight:600;color:var(--c-navy);margin-bottom:4px}
-.metric-sub{font-size:0.75rem;color:var(--c-gray-3)}
-.findings-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-.finding{display:flex;gap:16px;padding:20px 24px;border:1px solid var(--c-gray-1);border-radius:var(--r-lg)}
-.finding-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;background:var(--fd-color,var(--c-blue))}
-.finding h4{font-size:0.9rem;font-weight:700;color:var(--c-navy);margin-bottom:4px}
-.finding p{font-size:0.85rem;line-height:1.6;color:var(--c-gray-3)}
+    /* ── LAYOUT ──────────────────────────────────────────────── */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px
+    }
 
-/* ── USE CASES ───────────────────────────────────────────── */
-.use-cases{background:var(--c-offwhite);border-top:1px solid var(--c-gray-1)}
-.uc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.uc-card{border-radius:var(--r-xl);overflow:hidden;border:1px solid var(--c-gray-1);background:#fff;transition:box-shadow .25s, transform .25s}
-.uc-card:hover{box-shadow:0 12px 48px rgba(27,94,247,0.1);transform:translateY(-4px)}
-.uc-img{height:180px;overflow:hidden;position:relative}
-.uc-img img{width:100%;height:100%;object-fit:cover;filter:brightness(0.9);transition:transform .4s var(--ease-out)}
-.uc-card:hover .uc-img img{transform:scale(1.04)}
-.uc-body{padding:24px}
-.uc-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;background:var(--uci-bg,rgba(27,94,247,0.08))}
-.uc-body h3{font-family:var(--f-display);font-size:1rem;font-weight:700;color:var(--c-navy);margin-bottom:8px}
-.uc-body p{font-size:0.85rem;line-height:1.6;color:var(--c-gray-3)}
+    .section {
+      padding: 96px 0
+    }
 
-/* ── TEAM ─────────────────────────────────────────────────── */
-.team{background:#fff}
-.team-intro{max-width:640px;margin:0 auto;text-align:center;margin-bottom:64px}
-.team-intro p{margin-top:16px;font-size:1.05rem;line-height:1.7;color:var(--c-gray-3)}
-.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.team-card{
-  padding:32px 28px;border:1px solid var(--c-gray-1);border-radius:var(--r-xl);
-  text-align:left;transition:border-color .25s, box-shadow .25s;
-  position:relative;overflow:hidden;
-}
-.team-card::after{
-  content:'';position:absolute;inset:0;
-  background:var(--g-card);opacity:0;transition:opacity .25s;
-  pointer-events:none;
-}
-.team-card:hover{border-color:rgba(27,94,247,0.2);box-shadow:0 8px 40px rgba(27,94,247,0.08)}
-.team-card:hover::after{opacity:1}
-.team-avatar{
-  width:64px;height:64px;border-radius:50%;
-  margin-bottom:20px;object-fit:cover;
-  border:2px solid var(--c-gray-1);
-}
-.team-avatar-placeholder{
-  width:64px;height:64px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--f-display);font-size:1.2rem;font-weight:800;color:#fff;
-  margin-bottom:20px;flex-shrink:0;
-}
-.team-role-tag{
-  display:inline-block;font-size:0.72rem;font-weight:600;
-  color:var(--c-blue);background:rgba(27,94,247,0.08);
-  padding:3px 10px;border-radius:var(--r-pill);margin-bottom:10px;
-}
-.team-card h3{font-family:var(--f-display);font-size:1.1rem;font-weight:700;color:var(--c-navy);margin-bottom:4px}
-.team-roll{font-size:0.75rem;color:var(--c-gray-2);font-weight:500;margin-bottom:10px;font-family:'Inter',monospace}
-.team-card p{font-size:0.85rem;line-height:1.6;color:var(--c-gray-3);margin-bottom:20px}
-.team-contribs{display:flex;flex-direction:column;gap:5px;margin-bottom:20px}
-.tc-item{display:flex;align-items:flex-start;gap:7px;font-size:0.78rem;color:var(--c-gray-3);line-height:1.5}
-.tc-dot{width:4px;height:4px;border-radius:50%;background:var(--c-blue);margin-top:6px;flex-shrink:0}
-.team-link{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:0.8rem;font-weight:600;color:var(--c-blue);
-  transition:gap .2s;
-}
-.team-link:hover{gap:10px}
-.team-link svg{transition:transform .2s}
-.team-link:hover svg{transform:translateX(3px)}
+    /* ── NAV ─────────────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 0 40px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(6, 11, 24, 0.0);
+      backdrop-filter: blur(0px);
+      transition: background .3s, backdrop-filter .3s, border-color .3s;
+      border-bottom: 1px solid transparent;
+    }
 
-/* ── CTA ─────────────────────────────────────────────────── */
-.cta-section{
-  background:var(--c-navy);padding:100px 0;
-  position:relative;overflow:hidden;
-  text-align:center;
-}
-.cta-section::before{
-  content:'';position:absolute;inset:0;
-  background:
-    radial-gradient(ellipse 70% 80% at 30% 50%, rgba(27,94,247,0.2) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 70% at 75% 40%, rgba(124,63,228,0.18) 0%, transparent 60%);
-}
-.cta-inner{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:0 24px}
-.cta-inner h2{color:#fff;margin-bottom:16px}
-.cta-inner p{color:rgba(255,255,255,0.55);font-size:1.05rem;margin-bottom:40px}
-.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-white{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:1rem;font-weight:600;color:var(--c-navy);
-  padding:14px 28px;border-radius:var(--r-pill);
-  background:#fff;transition:opacity .2s;
-}
-.btn-white:hover{opacity:0.9}
-.btn-outline-white{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:1rem;font-weight:500;color:rgba(255,255,255,0.8);
-  padding:14px 24px;border-radius:var(--r-pill);
-  border:1px solid rgba(255,255,255,0.2);transition:all .2s;
-}
-.btn-outline-white:hover{background:rgba(255,255,255,0.07);color:#fff}
+    .nav.scrolled {
+      background: rgba(6, 11, 24, 0.88);
+      backdrop-filter: blur(18px);
+      border-bottom-color: rgba(255, 255, 255, 0.06);
+    }
 
-/* ── FOOTER ──────────────────────────────────────────────── */
-.footer{background:#040810;border-top:1px solid rgba(255,255,255,0.06);padding:60px 0 32px}
-.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
-.footer-brand{}
-.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.footer-logo-mark{width:34px;height:34px;border-radius:9px;background:var(--g-logo);display:flex;align-items:center;justify-content:center}
-.footer-logo-text{font-family:var(--f-display);font-size:1.1rem;font-weight:700;color:#fff}
-.footer-logo-text span{color:var(--c-violet-2)}
-.footer-brand p{font-size:0.85rem;line-height:1.65;color:rgba(255,255,255,0.35);max-width:260px}
-.footer-col h4{font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:16px}
-.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
-.footer-col ul li a{font-size:0.875rem;color:rgba(255,255,255,0.4);transition:color .2s}
-.footer-col ul li a:hover{color:rgba(255,255,255,0.85)}
-.footer-bottom{
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
-  padding-top:28px;border-top:1px solid rgba(255,255,255,0.06);
-}
-.footer-copy{font-size:0.8rem;color:rgba(255,255,255,0.25)}
-.footer-socials{display:flex;gap:12px}
-.social-btn{
-  width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);
-  display:flex;align-items:center;justify-content:center;
-  color:rgba(255,255,255,0.4);transition:all .2s;
-}
-.social-btn:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.8)}
-.back-to-top{
-  display:flex;align-items:center;gap:6px;
-  font-size:0.8rem;color:rgba(255,255,255,0.35);
-  cursor:pointer;transition:color .2s;
-  background:none;border:none;
-}
-.back-to-top:hover{color:rgba(255,255,255,0.7)}
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff
+    }
 
-/* ── RESPONSIVE ──────────────────────────────────────────── */
-@media(max-width:900px){
-  .nav-links,.nav-cta .btn-ghost-nav{display:none}
-  .hero-inner{grid-template-columns:1fr;text-align:center}
-  .hero-sub{margin:0 auto 40px}
-  .hero-actions{justify-content:center}
-  .hero-stats{justify-content:center}
-  .hero-visual{display:none}
-  .features-grid{grid-template-columns:1fr}
-  .steps-grid{grid-template-columns:repeat(2,1fr)}
-  .steps-grid::before{display:none}
-  .results-grid{grid-template-columns:repeat(2,1fr)}
-  .uc-grid{grid-template-columns:1fr}
-  .team-grid{grid-template-columns:repeat(2,1fr)}
-  .footer-top{grid-template-columns:1fr 1fr}
-}
-@media(max-width:600px){
-  .team-grid{grid-template-columns:1fr}
-  .results-grid{grid-template-columns:1fr}
-  .findings-grid{grid-template-columns:1fr}
-  .steps-grid{grid-template-columns:1fr}
-  .footer-top{grid-template-columns:1fr}
-}
-@media(prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
-}
-</style>
+    .nav-logo-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--g-logo);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-logo-text {
+      font-family: var(--f-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .nav-logo-text span {
+      color: var(--c-violet-2)
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      transition: color .2s
+    }
+
+    .nav-links a:hover {
+      color: #fff
+    }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .btn-ghost-nav {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.75);
+      padding: 8px 16px;
+      border-radius: var(--r-pill);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all .2s
+    }
+
+    .btn-ghost-nav:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff
+    }
+
+    .btn-primary-nav {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #fff;
+      padding: 9px 20px;
+      border-radius: var(--r-pill);
+      background: var(--g-accent);
+      transition: opacity .2s;
+      box-shadow: 0 4px 20px rgba(27, 94, 247, 0.35)
+    }
+
+    .btn-primary-nav:hover {
+      opacity: 0.88
+    }
+
+    /* ── HERO ─────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      background: var(--g-hero);
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding-top: 68px;
+    }
+
+    .hero-mesh {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(27, 94, 247, 0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 70% at 80% 30%, rgba(124, 63, 228, 0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 50% 80%, rgba(75, 130, 255, 0.12) 0%, transparent 60%);
+    }
+
+    .hero-grid-lines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .hero-content {}
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px 6px 8px;
+      background: rgba(27, 94, 247, 0.12);
+      border: 1px solid rgba(27, 94, 247, 0.3);
+      border-radius: var(--r-pill);
+      margin-bottom: 28px;
+    }
+
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4B82FF;
+      animation: pulse-dot 2s infinite
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.4
+      }
+    }
+
+    .hero-badge span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6B9EFF;
+      letter-spacing: 0.06em;
+      text-transform: uppercase
+    }
+
+    .hero-title {
+      color: #fff;
+      margin-bottom: 24px
+    }
+
+    .hero-title em {
+      font-style: normal;
+      background: var(--g-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .hero-sub {
+      margin-bottom: 40px;
+      max-width: 480px
+    }
+
+    .hero-sub p {
+      font-size: 1.1rem;
+      line-height: 1.75;
+      color: rgba(255, 255, 255, 0.6)
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 56px
+    }
+
+    .btn-primary-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: var(--r-pill);
+      background: var(--g-accent);
+      box-shadow: 0 8px 32px rgba(27, 94, 247, 0.4);
+      transition: transform .2s, box-shadow .2s;
+    }
+
+    .btn-primary-hero:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(27, 94, 247, 0.5)
+    }
+
+    .btn-ghost-hero {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+      padding: 14px 24px;
+      border-radius: var(--r-pill);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all .2s;
+    }
+
+    .btn-ghost-hero:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 0
+    }
+
+    .hero-stat {
+      padding-right: 32px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1)
+    }
+
+    .hero-stat:last-child {
+      border-right: none;
+      padding-right: 0;
+      padding-left: 32px
+    }
+
+    .hero-stat:first-child {
+      padding-left: 0
+    }
+
+    .hero-stat-num {
+      font-family: var(--f-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1
+    }
+
+    .hero-stat-num span {
+      font-size: 1.2rem;
+      color: var(--c-blue-light)
+    }
+
+    .hero-stat-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.45);
+      margin-top: 4px;
+      line-height: 1.4
+    }
+
+    /* Hero scan card */
+    .hero-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center
+    }
+
+    .scan-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(13, 20, 39, 0.7);
+      border: 1px solid rgba(75, 130, 255, 0.2);
+      border-radius: 24px;
+      padding: 28px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-card::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(27, 94, 247, 0.15), transparent 70%);
+      pointer-events: none;
+    }
+
+    .scan-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px
+    }
+
+    .scan-card-title {
+      font-family: var(--f-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: var(--r-pill)
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      animation: pulse-dot 1.5s infinite
+    }
+
+    .live-pill span {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #10B981;
+      letter-spacing: 0.05em
+    }
+
+    .face-ring-area {
+      display: flex;
+      justify-content: center;
+      margin: 4px 0 24px;
+      position: relative
+    }
+
+    .face-rings {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(75, 130, 255, 0.25);
+      animation: spin-ring linear infinite
+    }
+
+    .ring-1 {
+      width: 100px;
+      height: 100px;
+      animation-duration: 12s
+    }
+
+    .ring-2 {
+      width: 76px;
+      height: 76px;
+      border-color: rgba(124, 63, 228, 0.3);
+      animation-duration: 8s;
+      animation-direction: reverse
+    }
+
+    .ring-3 {
+      width: 54px;
+      height: 54px;
+      border-color: rgba(75, 130, 255, 0.4);
+      animation-duration: 5s
+    }
+
+    @keyframes spin-ring {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .face-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--g-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      box-shadow: 0 0 30px rgba(27, 94, 247, 0.4)
+    }
+
+    .scan-beam {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(75, 130, 255, 0.8), transparent);
+      animation: scan-beam 2.2s ease-in-out infinite;
+      top: 20px
+    }
+
+    @keyframes scan-beam {
+      0% {
+        top: 0;
+        opacity: 0
+      }
+
+      20% {
+        opacity: 1
+      }
+
+      80% {
+        opacity: 1
+      }
+
+      100% {
+        top: 100%;
+        opacity: 0
+      }
+    }
+
+    .score-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 20px
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .score-label {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.55);
+      width: 100px;
+      flex-shrink: 0
+    }
+
+    .score-track {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: var(--r-pill);
+      overflow: hidden
+    }
+
+    .score-fill {
+      height: 100%;
+      border-radius: var(--r-pill);
+      transition: width .8s var(--ease-out)
+    }
+
+    .score-pct {
+      font-family: 'Inter', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: 30px;
+      text-align: right;
+      flex-shrink: 0
+    }
+
+    .verdict-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--r-md);
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .verdict-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .verdict-text {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #F87171
+    }
+
+    .verdict-sub {
+      font-size: 0.72rem;
+      color: rgba(239, 68, 68, 0.65);
+      margin-top: 1px
+    }
+
+    /* ── TRUST BAR ───────────────────────────────────────────── */
+    .trust-bar {
+      background: var(--c-offwhite);
+      border-top: 1px solid var(--c-gray-1);
+      border-bottom: 1px solid var(--c-gray-1);
+      padding: 24px 0;
+    }
+
+    .trust-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .trust-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .trust-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--c-gray-3)
+    }
+
+    /* ── SECTIONS COMMON ─────────────────────────────────────── */
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c-blue);
+      margin-bottom: 16px;
+    }
+
+    .section-badge::before {
+      content: '';
+      display: block;
+      width: 16px;
+      height: 2px;
+      background: var(--g-accent);
+      border-radius: 1px
+    }
+
+    .section-heading {
+      margin-bottom: 16px;
+      color: var(--c-navy)
+    }
+
+    .section-sub {
+      max-width: 560px;
+      color: var(--c-gray-3);
+      font-size: 1.05rem;
+      line-height: 1.7
+    }
+
+    .section-center {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 64px
+    }
+
+    .section-center .section-badge::before {
+      display: none
+    }
+
+    /* ── FEATURES ────────────────────────────────────────────── */
+    .features {
+      background: #fff
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px
+    }
+
+    .feature-card {
+      padding: 36px;
+      border: 1px solid var(--c-gray-1);
+      border-radius: var(--r-xl);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s, box-shadow .25s;
+      background: #fff;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--fc-grad, var(--g-accent));
+      opacity: 0;
+      transition: opacity .25s;
+    }
+
+    .feature-card:hover {
+      border-color: transparent;
+      box-shadow: 0 8px 48px rgba(27, 94, 247, 0.1)
+    }
+
+    .feature-card:hover::before {
+      opacity: 1
+    }
+
+    .feature-card-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--c-gray-2);
+      margin-bottom: 20px
+    }
+
+    .feature-icon-ring {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background: var(--fi-bg, rgba(27, 94, 247, 0.08));
+    }
+
+    .feature-card h3 {
+      font-family: var(--f-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--c-navy);
+      margin-bottom: 10px;
+      letter-spacing: -0.01em
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--c-gray-3);
+      margin-bottom: 20px
+    }
+
+    .feature-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .ftag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--r-pill);
+      background: var(--c-gray-1);
+      color: var(--c-gray-3)
+    }
+
+    /* ── HOW IT WORKS ────────────────────────────────────────── */
+    .how {
+      background: var(--c-offwhite);
+      border-top: 1px solid var(--c-gray-1);
+      border-bottom: 1px solid var(--c-gray-1)
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      position: relative
+    }
+
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 38px;
+      left: 12.5%;
+      right: 12.5%;
+      height: 1px;
+      background: var(--c-gray-1);
+      z-index: 0;
+    }
+
+    .step {
+      text-align: center;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1
+    }
+
+    .step-num-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      background: #fff;
+      border: 1px solid var(--c-gray-1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      position: relative;
+    }
+
+    .step-num-circle svg {
+      flex-shrink: 0
+    }
+
+    .step-num {
+      font-family: var(--f-display);
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--c-blue);
+      letter-spacing: 0.08em;
+      margin-bottom: 8px
+    }
+
+    .step h3 {
+      font-family: var(--f-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--c-navy);
+      margin-bottom: 8px
+    }
+
+    .step p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--c-gray-3)
+    }
+
+    /* ── RESULTS ─────────────────────────────────────────────── */
+    .results {
+      background: #fff
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-bottom: 48px
+    }
+
+    .metric-card {
+      padding: 32px 24px;
+      text-align: center;
+      border: 1px solid var(--c-gray-1);
+      border-radius: var(--r-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--mc-grad, var(--g-accent));
+    }
+
+    .metric-num {
+      font-family: var(--f-display);
+      font-size: 2.6rem;
+      font-weight: 800;
+      color: var(--mc-color, var(--c-blue));
+      line-height: 1;
+      margin-bottom: 4px
+    }
+
+    .metric-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--c-navy);
+      margin-bottom: 4px
+    }
+
+    .metric-sub {
+      font-size: 0.75rem;
+      color: var(--c-gray-3)
+    }
+
+    .findings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px
+    }
+
+    .finding {
+      display: flex;
+      gap: 16px;
+      padding: 20px 24px;
+      border: 1px solid var(--c-gray-1);
+      border-radius: var(--r-lg)
+    }
+
+    .finding-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+      background: var(--fd-color, var(--c-blue))
+    }
+
+    .finding h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--c-navy);
+      margin-bottom: 4px
+    }
+
+    .finding p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--c-gray-3)
+    }
+
+    /* ── USE CASES ───────────────────────────────────────────── */
+    .use-cases {
+      background: var(--c-offwhite);
+      border-top: 1px solid var(--c-gray-1)
+    }
+
+    .uc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px
+    }
+
+    .uc-card {
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      border: 1px solid var(--c-gray-1);
+      background: #fff;
+      transition: box-shadow .25s, transform .25s
+    }
+
+    .uc-card:hover {
+      box-shadow: 0 12px 48px rgba(27, 94, 247, 0.1);
+      transform: translateY(-4px)
+    }
+
+    .uc-img {
+      height: 180px;
+      overflow: hidden;
+      position: relative
+    }
+
+    .uc-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.9);
+      transition: transform .4s var(--ease-out)
+    }
+
+    .uc-card:hover .uc-img img {
+      transform: scale(1.04)
+    }
+
+    .uc-body {
+      padding: 24px
+    }
+
+    .uc-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      background: var(--uci-bg, rgba(27, 94, 247, 0.08))
+    }
+
+    .uc-body h3 {
+      font-family: var(--f-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--c-navy);
+      margin-bottom: 8px
+    }
+
+    .uc-body p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--c-gray-3)
+    }
+
+    /* ── TEAM ─────────────────────────────────────────────────── */
+    .team {
+      background: #fff
+    }
+
+    .team-intro {
+      max-width: 640px;
+      margin: 0 auto;
+      text-align: center;
+      margin-bottom: 64px
+    }
+
+    .team-intro p {
+      margin-top: 16px;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--c-gray-3)
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px
+    }
+
+    .team-card {
+      padding: 32px 28px;
+      border: 1px solid var(--c-gray-1);
+      border-radius: var(--r-xl);
+      text-align: left;
+      transition: border-color .25s, box-shadow .25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .team-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--g-card);
+      opacity: 0;
+      transition: opacity .25s;
+      pointer-events: none;
+    }
+
+    .team-card:hover {
+      border-color: rgba(27, 94, 247, 0.2);
+      box-shadow: 0 8px 40px rgba(27, 94, 247, 0.08)
+    }
+
+    .team-card:hover::after {
+      opacity: 1
+    }
+
+    .team-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      object-fit: cover;
+      border: 2px solid var(--c-gray-1);
+    }
+
+    .team-avatar-placeholder {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--f-display);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+
+    .team-role-tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--c-blue);
+      background: rgba(27, 94, 247, 0.08);
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
+      margin-bottom: 10px;
+    }
+
+    .team-card h3 {
+      font-family: var(--f-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--c-navy);
+      margin-bottom: 4px
+    }
+
+    .team-roll {
+      font-size: 0.75rem;
+      color: var(--c-gray-2);
+      font-weight: 500;
+      margin-bottom: 10px;
+      font-family: 'Inter', monospace
+    }
+
+    .team-card p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--c-gray-3);
+      margin-bottom: 20px
+    }
+
+    .team-contribs {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 20px
+    }
+
+    .tc-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--c-gray-3);
+      line-height: 1.5
+    }
+
+    .tc-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--c-blue);
+      margin-top: 6px;
+      flex-shrink: 0
+    }
+
+    .team-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--c-blue);
+      transition: gap .2s;
+    }
+
+    .team-link:hover {
+      gap: 10px
+    }
+
+    .team-link svg {
+      transition: transform .2s
+    }
+
+    .team-link:hover svg {
+      transform: translateX(3px)
+    }
+
+    /* ── CTA ─────────────────────────────────────────────────── */
+    .cta-section {
+      background: var(--c-navy);
+      padding: 100px 0;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 80% at 30% 50%, rgba(27, 94, 247, 0.2) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 70% at 75% 40%, rgba(124, 63, 228, 0.18) 0%, transparent 60%);
+    }
+
+    .cta-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 24px
+    }
+
+    .cta-inner h2 {
+      color: #fff;
+      margin-bottom: 16px
+    }
+
+    .cta-inner p {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 1.05rem;
+      margin-bottom: 40px
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap
+    }
+
+    .btn-white {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--c-navy);
+      padding: 14px 28px;
+      border-radius: var(--r-pill);
+      background: #fff;
+      transition: opacity .2s;
+    }
+
+    .btn-white:hover {
+      opacity: 0.9
+    }
+
+    .btn-outline-white {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.8);
+      padding: 14px 24px;
+      border-radius: var(--r-pill);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all .2s;
+    }
+
+    .btn-outline-white:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────────── */
+    .footer {
+      background: #040810;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 60px 0 32px
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px
+    }
+
+    .footer-brand {}
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px
+    }
+
+    .footer-logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: var(--g-logo);
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .footer-logo-text {
+      font-family: var(--f-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff
+    }
+
+    .footer-logo-text span {
+      color: var(--c-violet-2)
+    }
+
+    .footer-brand p {
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.35);
+      max-width: 260px
+    }
+
+    .footer-col h4 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 16px
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .footer-col ul li a {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.4);
+      transition: color .2s
+    }
+
+    .footer-col ul li a:hover {
+      color: rgba(255, 255, 255, 0.85)
+    }
+
+    .footer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.25)
+    }
+
+    .footer-socials {
+      display: flex;
+      gap: 12px
+    }
+
+    .social-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.4);
+      transition: all .2s;
+    }
+
+    .social-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.8)
+    }
+
+    .back-to-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.35);
+      cursor: pointer;
+      transition: color .2s;
+      background: none;
+      border: none;
+    }
+
+    .back-to-top:hover {
+      color: rgba(255, 255, 255, 0.7)
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media(max-width:900px) {
+
+      .nav-links,
+      .nav-cta .btn-ghost-nav {
+        display: none
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        text-align: center
+      }
+
+      .hero-sub {
+        margin: 0 auto 40px
+      }
+
+      .hero-actions {
+        justify-content: center
+      }
+
+      .hero-stats {
+        justify-content: center
+      }
+
+      .hero-visual {
+        display: none
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr
+      }
+
+      .steps-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .steps-grid::before {
+        display: none
+      }
+
+      .results-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .uc-grid {
+        grid-template-columns: 1fr
+      }
+
+      .team-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .footer-top {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    @media(max-width:600px) {
+      .team-grid {
+        grid-template-columns: 1fr
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr
+      }
+
+      .findings-grid {
+        grid-template-columns: 1fr
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr
+      }
+
+      .footer-top {
+        grid-template-columns: 1fr
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ── NAV ──────────────────────────────────────────────────── -->
-<nav class="nav" id="nav">
-  <a href="#" class="nav-logo">
-    <div class="nav-logo-mark">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"/>
-      </svg>
+  <!-- ── NAV ──────────────────────────────────────────────────── -->
+  <nav class="nav" id="nav">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" />
+        </svg>
+      </div>
+      <span class="nav-logo-text">Deep<span>Shield</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Detection</a>
+      <a href="#how">How it works</a>
+      <a href="#results">Results</a>
+      <a href="#use-cases">Use cases</a>
+      <a href="#team">Team</a>
     </div>
-    <span class="nav-logo-text">Deep<span>Shield</span></span>
-  </a>
-  <div class="nav-links">
-    <a href="#features">Detection</a>
-    <a href="#how">How it works</a>
-    <a href="#results">Results</a>
-    <a href="#use-cases">Use cases</a>
-    <a href="#team">Team</a>
-  </div>
-  <div class="nav-cta">
-    <a href="pages/login.html" class="btn-ghost-nav">Sign in</a>
-    <a href="pages/signup.html" class="btn-primary-nav">Get started</a>
-  </div>
-</nav>
+    <div class="nav-cta">
+      <a href="pages/login.html" class="btn-ghost-nav">Sign in</a>
+      <a href="pages/signup.html" class="btn-primary-nav">Get started</a>
+    </div>
+  </nav>
 
-<!-- ── HERO ──────────────────────────────────────────────────── -->
-<section class="hero" id="home">
-  <div class="hero-mesh"></div>
-  <div class="hero-grid-lines"></div>
-  <div class="hero-inner">
+  <!-- ── HERO ──────────────────────────────────────────────────── -->
+  <section class="hero" id="home">
+    <div class="hero-mesh"></div>
+    <div class="hero-grid-lines"></div>
+    <div class="hero-inner">
 
-    <div class="hero-content">
-      <div class="hero-badge">
-        <span class="hero-badge-dot"></span>
-        <span>B.Tech Major Project 2026-27 · PSIT Kanpur</span>
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          <span>B.Tech Major Project 2026-27 · PSIT Kanpur</span>
+        </div>
+        <h1 class="display-xl hero-title">
+          Detect deepfakes<br /><em>before they fool</em><br />anyone.
+        </h1>
+        <div class="hero-sub">
+          <p>DeepShield fuses face analysis, voice clone detection, and linguistic AI signals into one real-time verdict
+            — making multi-modal identity fraud nearly impossible to execute.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="pages/dashboard.html" class="btn-primary-hero">
+            Open dashboard
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+          <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
+            class="btn-ghost-hero">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-num">>0.95<span>×</span></div>
+            <div class="hero-stat-label">Face AUC-ROC<br />accuracy target</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">
+              <5<span>%</span>
+            </div>
+            <div class="hero-stat-label">Voice error rate<br />on ASVspoof 2021</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">3</div>
+            <div class="hero-stat-label">AI modules<br />fused in parallel</div>
+          </div>
+        </div>
       </div>
-      <h1 class="display-xl hero-title">
-        Detect deepfakes<br/><em>before they fool</em><br/>anyone.
-      </h1>
-      <div class="hero-sub">
-        <p>DeepShield fuses face analysis, voice clone detection, and linguistic AI signals into one real-time verdict — making multi-modal identity fraud nearly impossible to execute.</p>
+
+      <!-- Scan card -->
+      <div class="hero-visual">
+        <div class="scan-card">
+          <div class="scan-card-header">
+            <div class="scan-card-title">M3-ID Live Scan</div>
+            <div class="live-pill">
+              <div class="live-dot"></div><span>Scanning</span>
+            </div>
+          </div>
+          <div class="face-ring-area">
+            <div class="face-rings">
+              <div class="ring ring-1"></div>
+              <div class="ring ring-2"></div>
+              <div class="ring ring-3"></div>
+              <div class="face-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+                  stroke-linecap="round">
+                  <circle cx="12" cy="8" r="5" />
+                  <path d="M20 21a8 8 0 10-16 0" />
+                </svg>
+              </div>
+              <div class="scan-beam"></div>
+            </div>
+          </div>
+          <div class="score-bars">
+            <div class="score-row">
+              <span class="score-label">Face Integrity</span>
+              <div class="score-track">
+                <div class="score-fill" style="width:22%;background:#EF4444"></div>
+              </div>
+              <span class="score-pct" style="color:#EF4444">22%</span>
+            </div>
+            <div class="score-row">
+              <span class="score-label">Voice Auth.</span>
+              <div class="score-track">
+                <div class="score-fill" style="width:31%;background:#F97316"></div>
+              </div>
+              <span class="score-pct" style="color:#F97316">31%</span>
+            </div>
+            <div class="score-row">
+              <span class="score-label">Linguistic NLP</span>
+              <div class="score-track">
+                <div class="score-fill" style="width:18%;background:#EF4444"></div>
+              </div>
+              <span class="score-pct" style="color:#EF4444">18%</span>
+            </div>
+            <div class="score-row">
+              <span class="score-label">Fusion Score</span>
+              <div class="score-track">
+                <div class="score-fill" style="width:23%;background:linear-gradient(90deg,#EF4444,#7C3FE4)"></div>
+              </div>
+              <span class="score-pct" style="color:#EF4444">23%</span>
+            </div>
+          </div>
+          <div class="verdict-banner">
+            <div class="verdict-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.5"
+                stroke-linecap="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <div>
+              <div class="verdict-text">CRITICAL — Deepfake Detected</div>
+              <div class="verdict-sub">Fusion score 23% · BLOCK recommended</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="hero-actions">
-        <a href="pages/dashboard.html" class="btn-primary-hero">
-          Open dashboard
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+
+    </div>
+  </section>
+
+  <!-- ── TRUST BAR ──────────────────────────────────────────────── -->
+  <div class="trust-bar">
+    <div class="trust-bar-inner">
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(27,94,247,0.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2"
+            stroke-linecap="round">
+            <circle cx="12" cy="8" r="5" />
+            <path d="M20 21a8 8 0 10-16 0" />
+          </svg>
+        </div>
+        <span class="trust-label">EfficientNet-B4 Face Detection</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(124,63,228,0.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2"
+            stroke-linecap="round">
+            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            <path d="M19 10v2a7 7 0 01-14 0v-2" />
+          </svg>
+        </div>
+        <span class="trust-label">AASIST Voice Spoofing Detection</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(245,158,11,0.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"
+            stroke-linecap="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </div>
+        <span class="trust-label">BERT Linguistic Analysis</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(16,185,129,0.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+            stroke-linecap="round">
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
+        <span class="trust-label">MLP Fusion Engine with XAI</span>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon" style="background:rgba(14,165,233,0.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2"
+            stroke-linecap="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </div>
+        <span class="trust-label">Real-Time WebSocket Results</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FEATURES ───────────────────────────────────────────────── -->
+  <section class="features section" id="features">
+    <div class="container">
+      <div class="section-center">
+        <div class="section-badge">Detection Modules</div>
+        <h2 class="display-lg section-heading">Three pipelines. One verdict.</h2>
+        <p class="section-sub">Each module targets a different attack surface. Together they make DeepShield
+          adversarially robust — fooling all three simultaneously is practically impossible.</p>
+      </div>
+      <div class="features-grid">
+
+        <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF);--fi-bg:rgba(27,94,247,0.08)">
+          <div class="feature-card-num">01 / Face Detection</div>
+          <div class="feature-icon-ring">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8"
+              stroke-linecap="round">
+              <circle cx="12" cy="8" r="5" />
+              <path d="M20 21a8 8 0 10-16 0" />
+            </svg>
+          </div>
+          <h3>EfficientNet-B4 Visual Analysis</h3>
+          <p>MediaPipe extracts face crops from every video frame. EfficientNet-B4 — trained on FaceForensics++ and
+            Celeb-DF-v2 — detects GAN artifacts, blending boundaries, and texture anomalies at AUC-ROC above 0.95.</p>
+          <div class="feature-tags">
+            <span class="ftag">EfficientNet-B4</span>
+            <span class="ftag">MediaPipe</span>
+            <span class="ftag">FaceForensics++</span>
+            <span class="ftag">Celeb-DF-v2</span>
+          </div>
+        </div>
+
+        <div class="feature-card"
+          style="--fc-grad:linear-gradient(90deg,#10B981,#34D399);--fi-bg:rgba(16,185,129,0.08)">
+          <div class="feature-card-num">02 / Voice Analysis</div>
+          <div class="feature-icon-ring">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8"
+              stroke-linecap="round">
+              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+              <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+            </svg>
+          </div>
+          <h3>AASIST Voice Spoof Detection</h3>
+          <p>Log-Mel spectrograms and MFCCs feed the AASIST graph attention network fine-tuned on ASVspoof 2021. Detects
+            TTS synthesis, voice conversion, and neural vocoder artifacts with EER below 5%.</p>
+          <div class="feature-tags">
+            <span class="ftag">AASIST</span>
+            <span class="ftag">ASVspoof 2021</span>
+            <span class="ftag">MFCC</span>
+            <span class="ftag">CNN-LSTM</span>
+          </div>
+        </div>
+
+        <div class="feature-card"
+          style="--fc-grad:linear-gradient(90deg,#F59E0B,#FCD34D);--fi-bg:rgba(245,158,11,0.08)">
+          <div class="feature-card-num">03 / Linguistic NLP</div>
+          <div class="feature-icon-ring">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8"
+              stroke-linecap="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+          </div>
+          <h3>BERT Linguistic Pattern Analysis</h3>
+          <p>BERT fine-tuned on HC3 (37,175 QA pairs) classifies AI-generated versus human text. Statistical fallback
+            measures filler density, bigram entropy, and AI marker phrase detection — works fully offline.</p>
+          <div class="feature-tags">
+            <span class="ftag">BERT</span>
+            <span class="ftag">HC3 Dataset</span>
+            <span class="ftag">Bigram Entropy</span>
+            <span class="ftag">TF-IDF</span>
+          </div>
+        </div>
+
+        <div class="feature-card"
+          style="--fc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF);--fi-bg:rgba(124,63,228,0.08)">
+          <div class="feature-card-num">04 / Risk Fusion</div>
+          <div class="feature-icon-ring">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8"
+              stroke-linecap="round">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </div>
+          <h3>MLP Fusion Engine with XAI</h3>
+          <p>A trained MLP combines Face (35%), Voice (35%), NLP (30%) with anomaly boosting. Returns a calibrated
+            authenticity probability, confidence intervals, alert severity, and plain-English XAI evidence bullets.</p>
+          <div class="feature-tags">
+            <span class="ftag">MLP Fusion</span>
+            <span class="ftag">XAI Evidence</span>
+            <span class="ftag">Confidence Intervals</span>
+            <span class="ftag">WebSocket</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ───────────────────────────────────────────── -->
+  <section class="how section" id="how">
+    <div class="container">
+      <div class="section-center">
+        <div class="section-badge">How It Works</div>
+        <h2 class="display-lg section-heading">From upload to verdict in seconds.</h2>
+        <p class="section-sub">Three AI pipelines run in parallel the moment a file is uploaded. Results stream live to
+          your screen via WebSocket.</p>
+      </div>
+      <div class="steps-grid">
+
+        <div class="step">
+          <div class="step-num-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8"
+              stroke-linecap="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </div>
+          <div class="step-num">STEP 01</div>
+          <h3>Upload Media</h3>
+          <p>Drop a video, audio file, or paste text. Drag-and-drop supported. Any file type up to 500 MB.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-num-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8"
+              stroke-linecap="round">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+            </svg>
+          </div>
+          <div class="step-num">STEP 02</div>
+          <h3>3 Modules Run</h3>
+          <p>Face, Voice, and NLP pipelines process simultaneously. Each gives an independent confidence score.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-num-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8"
+              stroke-linecap="round">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+          </div>
+          <div class="step-num">STEP 03</div>
+          <h3>MLP Fusion</h3>
+          <p>Weighted scores fused with anomaly boosting. Confidence interval computed based on module agreement.</p>
+        </div>
+
+        <div class="step">
+          <div class="step-num-circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8"
+              stroke-linecap="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div class="step-num">STEP 04</div>
+          <h3>Verdict + XAI</h3>
+          <p>Calibrated score, severity alert (CRITICAL to CLEAR), XAI evidence bullets, and recommended action — all
+            streamed live.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RESULTS ────────────────────────────────────────────────── -->
+  <section class="results section" id="results">
+    <div class="container">
+      <div class="section-center">
+        <div class="section-badge">Performance</div>
+        <h2 class="display-lg section-heading">Results and targets.</h2>
+        <p class="section-sub">Each module is evaluated against industry-standard benchmarks used by academic
+          researchers worldwide.</p>
+      </div>
+
+      <div class="results-grid">
+        <div class="metric-card" style="--mc-color:#1B5EF7;--mc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF)">
+          <div class="metric-num">&gt;0.95</div>
+          <div class="metric-label">AUC-ROC</div>
+          <div class="metric-sub">Face Module · FaceForensics++ c23</div>
+        </div>
+        <div class="metric-card" style="--mc-color:#10B981;--mc-grad:linear-gradient(90deg,#10B981,#34D399)">
+          <div class="metric-num">&lt;5%</div>
+          <div class="metric-label">Equal Error Rate</div>
+          <div class="metric-sub">Voice Module · ASVspoof 2021 LA</div>
+        </div>
+        <div class="metric-card" style="--mc-color:#F59E0B;--mc-grad:linear-gradient(90deg,#F59E0B,#FCD34D)">
+          <div class="metric-num">&gt;90%</div>
+          <div class="metric-label">Accuracy</div>
+          <div class="metric-sub">NLP Module · HC3 test split</div>
+        </div>
+        <div class="metric-card" style="--mc-color:#7C3FE4;--mc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF)">
+          <div class="metric-num">&lt;3s</div>
+          <div class="metric-label">Full Latency</div>
+          <div class="metric-sub">All modules · Videos up to 60s</div>
+        </div>
+      </div>
+
+      <div class="findings-grid">
+        <div class="finding" style="--fd-color:#1B5EF7">
+          <div class="finding-dot"></div>
+          <div>
+            <h4>Adversarially robust by design</h4>
+            <p>A criminal must fool three completely independent AI systems simultaneously — exponentially harder than
+              bypassing any single-modality detector.</p>
+          </div>
+        </div>
+        <div class="finding" style="--fd-color:#10B981">
+          <div class="finding-dot"></div>
+          <div>
+            <h4>Offline fallback always works</h4>
+            <p>All three modules include statistical heuristics that produce valid results without any trained model
+              weights — the demo runs anywhere.</p>
+          </div>
+        </div>
+        <div class="finding" style="--fd-color:#F59E0B">
+          <div class="finding-dot"></div>
+          <div>
+            <h4>Live WebSocket streaming</h4>
+            <p>Results appear on screen as each module completes — face score first, then voice, then NLP, then fusion —
+              all without a page refresh.</p>
+          </div>
+        </div>
+        <div class="finding" style="--fd-color:#7C3FE4">
+          <div class="finding-dot"></div>
+          <div>
+            <h4>Every decision is explainable</h4>
+            <p>XAI evidence bullets explain each detection in plain English — which module flagged it, what triggered
+              the flag, and what action to take.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── USE CASES ──────────────────────────────────────────────── -->
+  <section class="use-cases section" id="use-cases">
+    <div class="container">
+      <div class="section-center">
+        <div class="section-badge">Use Cases</div>
+        <h2 class="display-lg section-heading">Built for identity fraud that can't be allowed.</h2>
+        <p class="section-sub">Wherever a deepfake video call, cloned voice, or AI-written script could cause real harm,
+          DeepShield catches it.</p>
+      </div>
+      <div class="uc-grid">
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&auto=format&fit=crop&q=70"
+              alt="Banking KYC" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(27,94,247,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+            </div>
+            <h3>Banking KYC Verification</h3>
+            <p>Detect if the person on a video KYC call is a real human or an AI-generated deepfake impersonating a
+              customer — before any account is opened.</p>
+          </div>
+        </div>
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=70"
+              alt="Legal Evidence" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(124,63,228,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2"
+                stroke-linecap="round">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <h3>Legal Evidence Integrity</h3>
+            <p>Verify whether a video or audio recording submitted as evidence in legal proceedings has been manipulated
+              or synthesised using AI tools.</p>
+          </div>
+        </div>
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop&q=70"
+              alt="CEO Fraud" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(239,68,68,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"
+                stroke-linecap="round">
+                <path
+                  d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.67 19.79 19.79 0 012 2.18 2 2 0 014 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+              </svg>
+            </div>
+            <h3>CEO Fraud Prevention</h3>
+            <p>Stop voice clone scams targeting finance teams. Detect synthetic executive voices on calls requesting
+              urgent wire transfers — the exact attack that cost one firm $25 million.</p>
+          </div>
+        </div>
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=70"
+              alt="Media Integrity" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(245,158,11,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"
+                stroke-linecap="round">
+                <path d="M23 7l-7 5 7 5V7z" />
+                <rect x="1" y="5" width="15" height="14" rx="2" />
+              </svg>
+            </div>
+            <h3>Media & Journalism</h3>
+            <p>Verify news videos and politician speeches before publication. Flag AI-generated or manipulated footage
+              that could be mistaken for real reportage.</p>
+          </div>
+        </div>
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=70"
+              alt="Healthcare" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(16,185,129,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+                stroke-linecap="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <h3>Telemedicine Security</h3>
+            <p>Ensure that remote patient consultations involve real verified individuals — not deepfake proxies
+              accessing sensitive medical records or prescriptions.</p>
+          </div>
+        </div>
+
+        <div class="uc-card">
+          <div class="uc-img">
+            <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=70"
+              alt="Enterprise" />
+          </div>
+          <div class="uc-body">
+            <div class="uc-icon" style="--uci-bg:rgba(14,165,233,0.08)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2"
+                stroke-linecap="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+              </svg>
+            </div>
+            <h3>Enterprise Security</h3>
+            <p>Protect board meetings and sensitive video calls from criminals who impersonate executives using
+              AI-generated voice and face clones to authorise fraudulent transactions.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TEAM ───────────────────────────────────────────────────── -->
+  <section class="team section" id="team">
+    <div class="container">
+      <div class="team-intro">
+        <div class="section-badge"
+          style="display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-blue);margin-bottom:16px">
+          Meet the Team</div>
+        <h2 class="display-lg">Built by passionate engineers.</h2>
+        <p>DeepShield M3-ID is a B.Tech Major Project by five engineers from PSIT Kanpur, combining deep learning,
+          cybersecurity, and full-stack development to build India's first student-level multi-modal deepfake detection
+          system.</p>
+      </div>
+
+      <div class="team-grid">
+
+        <!-- Gauresh -->
+        <div class="team-card">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#4B82FF)">GK</div>
+          <span class="team-role-tag">Face Detection Module</span>
+          <h3>Gauresh Kumar Chaubey</h3>
+          <div class="team-roll">Roll No. 2301641720045</div>
+          <div class="team-contribs">
+            <div class="tc-item">
+              <div class="tc-dot"></div>EfficientNet-B4 training on FaceForensics++ and Celeb-DF-v2
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot"></div>MediaPipe face extraction — 468 landmarks per frame
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot"></div>Temporal frame aggregation into video-level score
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot"></div>OpenCV heuristic fallback for offline mode
+            </div>
+          </div>
+          <a href="https://github.com/Gauresh83" target="_blank" class="team-link">
+            View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Ish -->
+        <div class="team-card">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#10B981,#34D399)">ID</div>
+          <span class="team-role-tag" style="background:rgba(16,185,129,0.08);color:#10B981">Voice Analysis
+            Module</span>
+          <h3>Ish Dubey</h3>
+          <div class="team-roll">Roll No. 2301641720052</div>
+          <div class="team-contribs">
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#10B981"></div>AASIST fine-tuning on ASVspoof 2021 LA partition
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#10B981"></div>Log-Mel spectrogram (80 banks) and MFCC extraction
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#10B981"></div>Bidirectional CNN-LSTM architecture design
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#10B981"></div>Librosa heuristic fallback for zero-dependency audio
+            </div>
+          </div>
+          <a href="https://github.com/Ish1203" target="_blank" class="team-link" style="color:#10B981">
+            View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Aryan -->
+        <div class="team-card">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#7C3FE4,#9F6EFF)">AT</div>
+          <span class="team-role-tag" style="background:rgba(124,63,228,0.08);color:#7C3FE4">Fusion Engine &amp;
+            XAI</span>
+          <h3>Aryan Tiwari</h3>
+          <div class="team-roll">Roll No. 2301641720030</div>
+          <div class="team-contribs">
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#7C3FE4"></div>MLP fusion layer — 3-input to Dense(64) to Sigmoid
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#7C3FE4"></div>SyncNet lip-sync audio-visual alignment verification
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#7C3FE4"></div>XAI evidence bullet generator in plain English
+            </div>
+          </div>
+          <a href="#" class="team-link" style="color:#7C3FE4">
+            View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Janhvi -->
+        <div class="team-card">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)">JY</div>
+          <span class="team-role-tag" style="background:rgba(14,165,233,0.08);color:#0EA5E9">Backend &amp; API</span>
+          <h3>Janhvi Yadav</h3>
+          <div class="team-roll">Roll No. 2301641720054</div>
+          <div class="team-contribs">
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#0EA5E9"></div>FastAPI backend — 11 REST and WebSocket route groups
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#0EA5E9"></div>JWT authentication with bcrypt password hashing
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#0EA5E9"></div>Confidence interval calculation and alert severity
+              routing
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#0EA5E9"></div>Docker deployment and GitHub Actions CI pipeline
+            </div>
+          </div>
+          <a href="#" class="team-link" style="color:#0EA5E9">
+            View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Anand -->
+        <div class="team-card">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#F59E0B,#FCD34D)">AK</div>
+          <span class="team-role-tag" style="background:rgba(245,158,11,0.08);color:#F59E0B">Frontend &amp;
+            Integration</span>
+          <h3>Anand Kumar</h3>
+          <div class="team-roll">Roll No. 2301641720018</div>
+          <div class="team-contribs">
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#F59E0B"></div>10-page premium UI with 5-theme system design
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#F59E0B"></div>Chart.js dashboards — doughnut ring, XAI bars,
+              activity charts
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#F59E0B"></div>Full offline demo mode — all pages work without the
+              server
+            </div>
+            <div class="tc-item">
+              <div class="tc-dot" style="background:#F59E0B"></div>End-to-end integration testing across all 4 modules
+            </div>
+          </div>
+          <a href="#" class="team-link" style="color:#F59E0B">
+            View Profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Supervisor card -->
+        <div class="team-card" style="background:var(--c-navy);border-color:rgba(27,94,247,0.25)">
+          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#7C3FE4)">AA</div>
+          <span class="team-role-tag" style="background:rgba(27,94,247,0.15);color:#4B82FF">Project Supervisor</span>
+          <h3 style="color:#fff">Mr. Abhishek Anand</h3>
+          <div class="team-roll" style="color:rgba(255,255,255,0.35)">Assistant Professor, PSIT Kanpur</div>
+          <div class="team-contribs">
+            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
+              <div class="tc-dot" style="background:#4B82FF"></div>Dept. of Data Science — CS-CYS-4A
+            </div>
+            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
+              <div class="tc-dot" style="background:#4B82FF"></div>Team ID: 27_CS_CYS_4A_09
+            </div>
+            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
+              <div class="tc-dot" style="background:#4B82FF"></div>Session 2026-27
+            </div>
+          </div>
+          <span style="font-size:0.8rem;color:rgba(255,255,255,0.25)">Pranveer Singh Institute of Technology</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ────────────────────────────────────────────────────── -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <h2 class="display-lg">Catch deepfakes before they cause harm.</h2>
+      <p>Sign up and run your first multi-modal detection scan in under 60 seconds. No setup required — the demo works
+        entirely offline.</p>
+      <div class="cta-actions">
+        <a href="pages/signup.html" class="btn-white">
+          Start detecting free
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
         </a>
-        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="btn-ghost-hero">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
+          class="btn-outline-white">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+          </svg>
           View on GitHub
         </a>
       </div>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-num">>0.95<span>×</span></div>
-          <div class="hero-stat-label">Face AUC-ROC<br/>accuracy target</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num"><5<span>%</span></div>
-          <div class="hero-stat-label">Voice error rate<br/>on ASVspoof 2021</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num">3</div>
-          <div class="hero-stat-label">AI modules<br/>fused in parallel</div>
-        </div>
-      </div>
     </div>
+  </section>
 
-    <!-- Scan card -->
-    <div class="hero-visual">
-      <div class="scan-card">
-        <div class="scan-card-header">
-          <div class="scan-card-title">M3-ID Live Scan</div>
-          <div class="live-pill"><div class="live-dot"></div><span>Scanning</span></div>
-        </div>
-        <div class="face-ring-area">
-          <div class="face-rings">
-            <div class="ring ring-1"></div>
-            <div class="ring ring-2"></div>
-            <div class="ring ring-3"></div>
-            <div class="face-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+  <!-- ── FOOTER ─────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="footer-logo-mark">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
+                stroke-linecap="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
             </div>
-            <div class="scan-beam"></div>
+            <span class="footer-logo-text">Deep<span>Shield</span></span>
           </div>
+          <p>Multi-modal deepfake detection system combining face, voice, and linguistic analysis into one real-time
+            verdict.</p>
         </div>
-        <div class="score-bars">
-          <div class="score-row">
-            <span class="score-label">Face Integrity</span>
-            <div class="score-track"><div class="score-fill" style="width:22%;background:#EF4444"></div></div>
-            <span class="score-pct" style="color:#EF4444">22%</span>
-          </div>
-          <div class="score-row">
-            <span class="score-label">Voice Auth.</span>
-            <div class="score-track"><div class="score-fill" style="width:31%;background:#F97316"></div></div>
-            <span class="score-pct" style="color:#F97316">31%</span>
-          </div>
-          <div class="score-row">
-            <span class="score-label">Linguistic NLP</span>
-            <div class="score-track"><div class="score-fill" style="width:18%;background:#EF4444"></div></div>
-            <span class="score-pct" style="color:#EF4444">18%</span>
-          </div>
-          <div class="score-row">
-            <span class="score-label">Fusion Score</span>
-            <div class="score-track"><div class="score-fill" style="width:23%;background:linear-gradient(90deg,#EF4444,#7C3FE4)"></div></div>
-            <span class="score-pct" style="color:#EF4444">23%</span>
-          </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="pages/dashboard.html">Dashboard</a></li>
+            <li><a href="pages/face.html">Face Detection</a></li>
+            <li><a href="pages/voice.html">Voice Analysis</a></li>
+            <li><a href="pages/nlp.html">NLP Module</a></li>
+            <li><a href="pages/fusion.html">Risk Fusion</a></li>
+          </ul>
         </div>
-        <div class="verdict-banner">
-          <div class="verdict-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div>
-            <div class="verdict-text">CRITICAL — Deepfake Detected</div>
-            <div class="verdict-sub">Fusion score 23% · BLOCK recommended</div>
-          </div>
+        <div class="footer-col">
+          <h4>Detection</h4>
+          <ul>
+            <li><a href="#features">EfficientNet-B4</a></li>
+            <li><a href="#features">AASIST Voice</a></li>
+            <li><a href="#features">BERT NLP</a></li>
+            <li><a href="#features">MLP Fusion</a></li>
+            <li><a href="#features">XAI Evidence</a></li>
+          </ul>
         </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ── TRUST BAR ──────────────────────────────────────────────── -->
-<div class="trust-bar">
-  <div class="trust-bar-inner">
-    <div class="trust-item">
-      <div class="trust-icon" style="background:rgba(27,94,247,0.08)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-      </div>
-      <span class="trust-label">EfficientNet-B4 Face Detection</span>
-    </div>
-    <div class="trust-item">
-      <div class="trust-icon" style="background:rgba(124,63,228,0.08)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
-      </div>
-      <span class="trust-label">AASIST Voice Spoofing Detection</span>
-    </div>
-    <div class="trust-item">
-      <div class="trust-icon" style="background:rgba(245,158,11,0.08)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      </div>
-      <span class="trust-label">BERT Linguistic Analysis</span>
-    </div>
-    <div class="trust-item">
-      <div class="trust-icon" style="background:rgba(16,185,129,0.08)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </div>
-      <span class="trust-label">MLP Fusion Engine with XAI</span>
-    </div>
-    <div class="trust-item">
-      <div class="trust-icon" style="background:rgba(14,165,233,0.08)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </div>
-      <span class="trust-label">Real-Time WebSocket Results</span>
-    </div>
-  </div>
-</div>
-
-<!-- ── FEATURES ───────────────────────────────────────────────── -->
-<section class="features section" id="features">
-  <div class="container">
-    <div class="section-center">
-      <div class="section-badge">Detection Modules</div>
-      <h2 class="display-lg section-heading">Three pipelines. One verdict.</h2>
-      <p class="section-sub">Each module targets a different attack surface. Together they make DeepShield adversarially robust — fooling all three simultaneously is practically impossible.</p>
-    </div>
-    <div class="features-grid">
-
-      <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF);--fi-bg:rgba(27,94,247,0.08)">
-        <div class="feature-card-num">01 / Face Detection</div>
-        <div class="feature-icon-ring">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
-        </div>
-        <h3>EfficientNet-B4 Visual Analysis</h3>
-        <p>MediaPipe extracts face crops from every video frame. EfficientNet-B4 — trained on FaceForensics++ and Celeb-DF-v2 — detects GAN artifacts, blending boundaries, and texture anomalies at AUC-ROC above 0.95.</p>
-        <div class="feature-tags">
-          <span class="ftag">EfficientNet-B4</span>
-          <span class="ftag">MediaPipe</span>
-          <span class="ftag">FaceForensics++</span>
-          <span class="ftag">Celeb-DF-v2</span>
+        <div class="footer-col">
+          <h4>Project</h4>
+          <ul>
+            <li><a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank">GitHub
+                Repo</a></li>
+            <li><a href="#team">Meet the Team</a></li>
+            <li><a href="#results">Performance</a></li>
+            <li><a href="#use-cases">Use Cases</a></li>
+            <li><a href="pages/dashboard.html">Live Demo</a></li>
+          </ul>
         </div>
       </div>
-
-      <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#10B981,#34D399);--fi-bg:rgba(16,185,129,0.08)">
-        <div class="feature-card-num">02 / Voice Analysis</div>
-        <div class="feature-icon-ring">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
-        </div>
-        <h3>AASIST Voice Spoof Detection</h3>
-        <p>Log-Mel spectrograms and MFCCs feed the AASIST graph attention network fine-tuned on ASVspoof 2021. Detects TTS synthesis, voice conversion, and neural vocoder artifacts with EER below 5%.</p>
-        <div class="feature-tags">
-          <span class="ftag">AASIST</span>
-          <span class="ftag">ASVspoof 2021</span>
-          <span class="ftag">MFCC</span>
-          <span class="ftag">CNN-LSTM</span>
-        </div>
-      </div>
-
-      <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#F59E0B,#FCD34D);--fi-bg:rgba(245,158,11,0.08)">
-        <div class="feature-card-num">03 / Linguistic NLP</div>
-        <div class="feature-icon-ring">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        </div>
-        <h3>BERT Linguistic Pattern Analysis</h3>
-        <p>BERT fine-tuned on HC3 (37,175 QA pairs) classifies AI-generated versus human text. Statistical fallback measures filler density, bigram entropy, and AI marker phrase detection — works fully offline.</p>
-        <div class="feature-tags">
-          <span class="ftag">BERT</span>
-          <span class="ftag">HC3 Dataset</span>
-          <span class="ftag">Bigram Entropy</span>
-          <span class="ftag">TF-IDF</span>
-        </div>
-      </div>
-
-      <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF);--fi-bg:rgba(124,63,228,0.08)">
-        <div class="feature-card-num">04 / Risk Fusion</div>
-        <div class="feature-icon-ring">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </div>
-        <h3>MLP Fusion Engine with XAI</h3>
-        <p>A trained MLP combines Face (35%), Voice (35%), NLP (30%) with anomaly boosting. Returns a calibrated authenticity probability, confidence intervals, alert severity, and plain-English XAI evidence bullets.</p>
-        <div class="feature-tags">
-          <span class="ftag">MLP Fusion</span>
-          <span class="ftag">XAI Evidence</span>
-          <span class="ftag">Confidence Intervals</span>
-          <span class="ftag">WebSocket</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ── HOW IT WORKS ───────────────────────────────────────────── -->
-<section class="how section" id="how">
-  <div class="container">
-    <div class="section-center">
-      <div class="section-badge">How It Works</div>
-      <h2 class="display-lg section-heading">From upload to verdict in seconds.</h2>
-      <p class="section-sub">Three AI pipelines run in parallel the moment a file is uploaded. Results stream live to your screen via WebSocket.</p>
-    </div>
-    <div class="steps-grid">
-
-      <div class="step">
-        <div class="step-num-circle">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </div>
-        <div class="step-num">STEP 01</div>
-        <h3>Upload Media</h3>
-        <p>Drop a video, audio file, or paste text. Drag-and-drop supported. Any file type up to 500 MB.</p>
-      </div>
-
-      <div class="step">
-        <div class="step-num-circle">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-        </div>
-        <div class="step-num">STEP 02</div>
-        <h3>3 Modules Run</h3>
-        <p>Face, Voice, and NLP pipelines process simultaneously. Each gives an independent confidence score.</p>
-      </div>
-
-      <div class="step">
-        <div class="step-num-circle">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        </div>
-        <div class="step-num">STEP 03</div>
-        <h3>MLP Fusion</h3>
-        <p>Weighted scores fused with anomaly boosting. Confidence interval computed based on module agreement.</p>
-      </div>
-
-      <div class="step">
-        <div class="step-num-circle">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        </div>
-        <div class="step-num">STEP 04</div>
-        <h3>Verdict + XAI</h3>
-        <p>Calibrated score, severity alert (CRITICAL to CLEAR), XAI evidence bullets, and recommended action — all streamed live.</p>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ── RESULTS ────────────────────────────────────────────────── -->
-<section class="results section" id="results">
-  <div class="container">
-    <div class="section-center">
-      <div class="section-badge">Performance</div>
-      <h2 class="display-lg section-heading">Results and targets.</h2>
-      <p class="section-sub">Each module is evaluated against industry-standard benchmarks used by academic researchers worldwide.</p>
-    </div>
-
-    <div class="results-grid">
-      <div class="metric-card" style="--mc-color:#1B5EF7;--mc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF)">
-        <div class="metric-num">&gt;0.95</div>
-        <div class="metric-label">AUC-ROC</div>
-        <div class="metric-sub">Face Module · FaceForensics++ c23</div>
-      </div>
-      <div class="metric-card" style="--mc-color:#10B981;--mc-grad:linear-gradient(90deg,#10B981,#34D399)">
-        <div class="metric-num">&lt;5%</div>
-        <div class="metric-label">Equal Error Rate</div>
-        <div class="metric-sub">Voice Module · ASVspoof 2021 LA</div>
-      </div>
-      <div class="metric-card" style="--mc-color:#F59E0B;--mc-grad:linear-gradient(90deg,#F59E0B,#FCD34D)">
-        <div class="metric-num">&gt;90%</div>
-        <div class="metric-label">Accuracy</div>
-        <div class="metric-sub">NLP Module · HC3 test split</div>
-      </div>
-      <div class="metric-card" style="--mc-color:#7C3FE4;--mc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF)">
-        <div class="metric-num">&lt;3s</div>
-        <div class="metric-label">Full Latency</div>
-        <div class="metric-sub">All modules · Videos up to 60s</div>
-      </div>
-    </div>
-
-    <div class="findings-grid">
-      <div class="finding" style="--fd-color:#1B5EF7">
-        <div class="finding-dot"></div>
-        <div>
-          <h4>Adversarially robust by design</h4>
-          <p>A criminal must fool three completely independent AI systems simultaneously — exponentially harder than bypassing any single-modality detector.</p>
-        </div>
-      </div>
-      <div class="finding" style="--fd-color:#10B981">
-        <div class="finding-dot"></div>
-        <div>
-          <h4>Offline fallback always works</h4>
-          <p>All three modules include statistical heuristics that produce valid results without any trained model weights — the demo runs anywhere.</p>
-        </div>
-      </div>
-      <div class="finding" style="--fd-color:#F59E0B">
-        <div class="finding-dot"></div>
-        <div>
-          <h4>Live WebSocket streaming</h4>
-          <p>Results appear on screen as each module completes — face score first, then voice, then NLP, then fusion — all without a page refresh.</p>
-        </div>
-      </div>
-      <div class="finding" style="--fd-color:#7C3FE4">
-        <div class="finding-dot"></div>
-        <div>
-          <h4>Every decision is explainable</h4>
-          <p>XAI evidence bullets explain each detection in plain English — which module flagged it, what triggered the flag, and what action to take.</p>
+      <div class="footer-bottom">
+        <div class="footer-copy">2026 DeepShield M3-ID · Team 27_CS_CYS_4A_09 · PSIT Kanpur · CS-CYS-4A</div>
+        <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+          Back to top
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="5 12 12 5 19 12" />
+          </svg>
+        </button>
+        <div class="footer-socials">
+          <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
+            class="social-btn" title="GitHub">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+          </a>
+          <a href="https://github.com/Ish1203" target="_blank" class="social-btn" title="Ish GitHub">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z" />
+              <rect x="2" y="9" width="4" height="12" />
+              <circle cx="4" cy="4" r="2" />
+            </svg>
+          </a>
+          <a href="mailto:2301641720045@psit.ac.in" class="social-btn" title="Email">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </a>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </footer>
 
-<!-- ── USE CASES ──────────────────────────────────────────────── -->
-<section class="use-cases section" id="use-cases">
-  <div class="container">
-    <div class="section-center">
-      <div class="section-badge">Use Cases</div>
-      <h2 class="display-lg section-heading">Built for identity fraud that can't be allowed.</h2>
-      <p class="section-sub">Wherever a deepfake video call, cloned voice, or AI-written script could cause real harm, DeepShield catches it.</p>
-    </div>
-    <div class="uc-grid">
+  <script>
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 30);
+    });
 
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&auto=format&fit=crop&q=70" alt="Banking KYC"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(27,94,247,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-          <h3>Banking KYC Verification</h3>
-          <p>Detect if the person on a video KYC call is a real human or an AI-generated deepfake impersonating a customer — before any account is opened.</p>
-        </div>
-      </div>
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+      });
+    });
 
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=70" alt="Legal Evidence"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(124,63,228,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <h3>Legal Evidence Integrity</h3>
-          <p>Verify whether a video or audio recording submitted as evidence in legal proceedings has been manipulated or synthesised using AI tools.</p>
-        </div>
-      </div>
+    // Reveal on scroll
+    const revealEls = document.querySelectorAll(
+      '.feature-card, .step, .metric-card, .finding, .uc-card, .team-card'
+    );
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateY(0)';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
 
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop&q=70" alt="CEO Fraud"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(239,68,68,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.67 19.79 19.79 0 012 2.18 2 2 0 014 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-          </div>
-          <h3>CEO Fraud Prevention</h3>
-          <p>Stop voice clone scams targeting finance teams. Detect synthetic executive voices on calls requesting urgent wire transfers — the exact attack that cost one firm $25 million.</p>
-        </div>
-      </div>
-
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=70" alt="Media Integrity"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(245,158,11,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-          </div>
-          <h3>Media & Journalism</h3>
-          <p>Verify news videos and politician speeches before publication. Flag AI-generated or manipulated footage that could be mistaken for real reportage.</p>
-        </div>
-      </div>
-
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=70" alt="Healthcare"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(16,185,129,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </div>
-          <h3>Telemedicine Security</h3>
-          <p>Ensure that remote patient consultations involve real verified individuals — not deepfake proxies accessing sensitive medical records or prescriptions.</p>
-        </div>
-      </div>
-
-      <div class="uc-card">
-        <div class="uc-img">
-          <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=70" alt="Enterprise"/>
-        </div>
-        <div class="uc-body">
-          <div class="uc-icon" style="--uci-bg:rgba(14,165,233,0.08)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-          </div>
-          <h3>Enterprise Security</h3>
-          <p>Protect board meetings and sensitive video calls from criminals who impersonate executives using AI-generated voice and face clones to authorise fraudulent transactions.</p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ── TEAM ───────────────────────────────────────────────────── -->
-<section class="team section" id="team">
-  <div class="container">
-    <div class="team-intro">
-      <div class="section-badge" style="display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-blue);margin-bottom:16px">Meet the Team</div>
-      <h2 class="display-lg">Built by passionate engineers.</h2>
-      <p>DeepShield M3-ID is a B.Tech Major Project by five engineers from PSIT Kanpur, combining deep learning, cybersecurity, and full-stack development to build India's first student-level multi-modal deepfake detection system.</p>
-    </div>
-
-    <div class="team-grid">
-
-      <!-- Gauresh -->
-      <div class="team-card">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#4B82FF)">GK</div>
-        <span class="team-role-tag">Face Detection Module</span>
-        <h3>Gauresh Kumar Chaubey</h3>
-        <div class="team-roll">Roll No. 2301641720045</div>
-        <div class="team-contribs">
-          <div class="tc-item"><div class="tc-dot"></div>EfficientNet-B4 training on FaceForensics++ and Celeb-DF-v2</div>
-          <div class="tc-item"><div class="tc-dot"></div>MediaPipe face extraction — 468 landmarks per frame</div>
-          <div class="tc-item"><div class="tc-dot"></div>Temporal frame aggregation into video-level score</div>
-          <div class="tc-item"><div class="tc-dot"></div>OpenCV heuristic fallback for offline mode</div>
-        </div>
-        <a href="https://github.com/Gauresh83" target="_blank" class="team-link">
-          View Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-
-      <!-- Ish -->
-      <div class="team-card">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#10B981,#34D399)">ID</div>
-        <span class="team-role-tag" style="background:rgba(16,185,129,0.08);color:#10B981">Voice Analysis Module</span>
-        <h3>Ish Dubey</h3>
-        <div class="team-roll">Roll No. 2301641720052</div>
-        <div class="team-contribs">
-          <div class="tc-item"><div class="tc-dot" style="background:#10B981"></div>AASIST fine-tuning on ASVspoof 2021 LA partition</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#10B981"></div>Log-Mel spectrogram (80 banks) and MFCC extraction</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#10B981"></div>Bidirectional CNN-LSTM architecture design</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#10B981"></div>Librosa heuristic fallback for zero-dependency audio</div>
-        </div>
-        <a href="https://github.com/Ish1203" target="_blank" class="team-link" style="color:#10B981">
-          View Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-
-      <!-- Aryan -->
-      <div class="team-card">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#7C3FE4,#9F6EFF)">AT</div>
-        <span class="team-role-tag" style="background:rgba(124,63,228,0.08);color:#7C3FE4">Fusion Engine &amp; XAI</span>
-        <h3>Aryan Tiwari</h3>
-        <div class="team-roll">Roll No. 2301641720030</div>
-        <div class="team-contribs">
-          <div class="tc-item"><div class="tc-dot" style="background:#7C3FE4"></div>MLP fusion layer — 3-input to Dense(64) to Sigmoid</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#7C3FE4"></div>SyncNet lip-sync audio-visual alignment verification</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#7C3FE4"></div>XAI evidence bullet generator in plain English</div>
-        </div>
-        <a href="#" class="team-link" style="color:#7C3FE4">
-          View Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-
-      <!-- Janhvi -->
-      <div class="team-card">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)">JY</div>
-        <span class="team-role-tag" style="background:rgba(14,165,233,0.08);color:#0EA5E9">Backend &amp; API</span>
-        <h3>Janhvi Yadav</h3>
-        <div class="team-roll">Roll No. 2301641720054</div>
-        <div class="team-contribs">
-          <div class="tc-item"><div class="tc-dot" style="background:#0EA5E9"></div>FastAPI backend — 11 REST and WebSocket route groups</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#0EA5E9"></div>JWT authentication with bcrypt password hashing</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#0EA5E9"></div>Confidence interval calculation and alert severity routing</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#0EA5E9"></div>Docker deployment and GitHub Actions CI pipeline</div>
-        </div>
-        <a href="#" class="team-link" style="color:#0EA5E9">
-          View Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-
-      <!-- Anand -->
-      <div class="team-card">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#F59E0B,#FCD34D)">AK</div>
-        <span class="team-role-tag" style="background:rgba(245,158,11,0.08);color:#F59E0B">Frontend &amp; Integration</span>
-        <h3>Anand Kumar</h3>
-        <div class="team-roll">Roll No. 2301641720018</div>
-        <div class="team-contribs">
-          <div class="tc-item"><div class="tc-dot" style="background:#F59E0B"></div>10-page premium UI with 5-theme system design</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#F59E0B"></div>Chart.js dashboards — doughnut ring, XAI bars, activity charts</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#F59E0B"></div>Full offline demo mode — all pages work without the server</div>
-          <div class="tc-item"><div class="tc-dot" style="background:#F59E0B"></div>End-to-end integration testing across all 4 modules</div>
-        </div>
-        <a href="#" class="team-link" style="color:#F59E0B">
-          View Profile
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-
-      <!-- Supervisor card -->
-      <div class="team-card" style="background:var(--c-navy);border-color:rgba(27,94,247,0.25)">
-        <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#7C3FE4)">AA</div>
-        <span class="team-role-tag" style="background:rgba(27,94,247,0.15);color:#4B82FF">Project Supervisor</span>
-        <h3 style="color:#fff">Mr. Abhishek Anand</h3>
-        <div class="team-roll" style="color:rgba(255,255,255,0.35)">Assistant Professor, PSIT Kanpur</div>
-        <div class="team-contribs">
-          <div class="tc-item" style="color:rgba(255,255,255,0.45)"><div class="tc-dot" style="background:#4B82FF"></div>Dept. of Data Science — CS-CYS-4A</div>
-          <div class="tc-item" style="color:rgba(255,255,255,0.45)"><div class="tc-dot" style="background:#4B82FF"></div>Team ID: 27_CS_CYS_4A_09</div>
-          <div class="tc-item" style="color:rgba(255,255,255,0.45)"><div class="tc-dot" style="background:#4B82FF"></div>Session 2026-27</div>
-        </div>
-        <span style="font-size:0.8rem;color:rgba(255,255,255,0.25)">Pranveer Singh Institute of Technology</span>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ── CTA ────────────────────────────────────────────────────── -->
-<section class="cta-section">
-  <div class="cta-inner">
-    <h2 class="display-lg">Catch deepfakes before they cause harm.</h2>
-    <p>Sign up and run your first multi-modal detection scan in under 60 seconds. No setup required — the demo works entirely offline.</p>
-    <div class="cta-actions">
-      <a href="pages/signup.html" class="btn-white">
-        Start detecting free
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </a>
-      <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="btn-outline-white">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        View on GitHub
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- ── FOOTER ─────────────────────────────────────────────────── -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="footer-logo">
-          <div class="footer-logo-mark">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-          </div>
-          <span class="footer-logo-text">Deep<span>Shield</span></span>
-        </div>
-        <p>Multi-modal deepfake detection system combining face, voice, and linguistic analysis into one real-time verdict.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Product</h4>
-        <ul>
-          <li><a href="pages/dashboard.html">Dashboard</a></li>
-          <li><a href="pages/face.html">Face Detection</a></li>
-          <li><a href="pages/voice.html">Voice Analysis</a></li>
-          <li><a href="pages/nlp.html">NLP Module</a></li>
-          <li><a href="pages/fusion.html">Risk Fusion</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Detection</h4>
-        <ul>
-          <li><a href="#features">EfficientNet-B4</a></li>
-          <li><a href="#features">AASIST Voice</a></li>
-          <li><a href="#features">BERT NLP</a></li>
-          <li><a href="#features">MLP Fusion</a></li>
-          <li><a href="#features">XAI Evidence</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Project</h4>
-        <ul>
-          <li><a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank">GitHub Repo</a></li>
-          <li><a href="#team">Meet the Team</a></li>
-          <li><a href="#results">Performance</a></li>
-          <li><a href="#use-cases">Use Cases</a></li>
-          <li><a href="pages/dashboard.html">Live Demo</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <div class="footer-copy">2026 DeepShield M3-ID · Team 27_CS_CYS_4A_09 · PSIT Kanpur · CS-CYS-4A</div>
-      <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
-        Back to top
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-      </button>
-      <div class="footer-socials">
-        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="social-btn" title="GitHub">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        </a>
-        <a href="https://github.com/Ish1203" target="_blank" class="social-btn" title="Ish GitHub">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-        </a>
-        <a href="mailto:2301641720045@psit.ac.in" class="social-btn" title="Email">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        </a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-// Nav scroll effect
-const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 30);
-});
-
-// Smooth scroll for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    const t = document.querySelector(a.getAttribute('href'));
-    if (t) { e.preventDefault(); t.scrollIntoView({behavior:'smooth'}); }
-  });
-});
-
-// Reveal on scroll
-const revealEls = document.querySelectorAll(
-  '.feature-card, .step, .metric-card, .finding, .uc-card, .team-card'
-);
-const io = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.style.opacity = '1';
-      e.target.style.transform = 'translateY(0)';
-      io.unobserve(e.target);
-    }
-  });
-}, {threshold: 0.1});
-
-revealEls.forEach(el => {
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(20px)';
-  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-  io.observe(el);
-});
-</script>
+    revealEls.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      io.observe(el);
+    });
+  </script>
 </body>
+
 </html>

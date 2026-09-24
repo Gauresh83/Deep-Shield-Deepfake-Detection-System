@@ -427,8 +427,9 @@
       document.getElementById("face-no-result").style.display = "none";
       const body = document.getElementById("face-result-body");
       body.style.display = "flex";
-      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "suspicious" : "fake");
-      const vc = { authentic: "CLEAR", suspicious: "MEDIUM", fake: "CRITICAL" }[verdict];
+      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "uncertain" : "fake");
+      const vcMap = { authentic: "CLEAR", uncertain: "MEDIUM", suspicious: "MEDIUM", fake: "CRITICAL", no_face: "MEDIUM", low_quality: "MEDIUM", unsupported_input: "MEDIUM" };
+      const vc = vcMap[verdict] || "MEDIUM";
       const color = scoreColor(score);
       const ganArtifact = summary.blending_artifact_score ?? (analysis && analysis.blending_artifact_score) ?? Math.min(100 - score + 20, 100);
       const texture = (analysis && analysis.texture_consistency) ?? score;
@@ -440,7 +441,7 @@
       <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-top:6px">Face Authenticity Score</div>
     </div>
     <div class="severity-badge ${vc}" style="width:100%;justify-content:center">
-      ${verdict === "authentic" ? "Identity Verified" : verdict === "suspicious" ? "Review Required" : "Deepfake Detected"}
+      ${verdict === "authentic" ? "Identity Verified" : verdict === "fake" ? "Deepfake Detected" : verdict === "no_face" ? "No Face Detected" : verdict === "low_quality" ? "Low Quality Input" : verdict === "unsupported_input" ? "Unsupported Input" : "Review Required"}
     </div>
     <div class="scan-meter">
       ${[["GAN Artifact Score", ganArtifact, "var(--danger)"], ["Texture Naturalness", texture, "var(--success)"], ["Boundary Integrity", boundary, "var(--accent)"], ["Temporal Stability", temporal, "var(--warning)"]].map(([l, v, c]) => `

@@ -3,17 +3,52 @@ M3-ID Face Deepfake Detection Module — Part 4
 ===============================================
 Architecture:
   1. Frame extraction from video (OpenCV)
-  2. Face detection & alignment  (OpenCV Haar / dlib)
-  3. Patch-level feature extraction (EfficientNet-B4 backbone)
-  4. Binary classification: real vs deepfake per frame
-  5. Temporal aggregation across frames → final score
+  2. Face detection & alignment  (MediaPipe if available, else OpenCV Haar)
+  3. Face quality gate (size / blur / brightness)
+  4. Patch-level feature extraction (EfficientNet-B4 backbone)
+  5. Binary classification: real vs deepfake per frame
+  6. Temporal aggregation across frames → final score
 
 When model weights are absent the module falls back to:
   • Pixel-level statistical heuristics (DCT, noise analysis, compression artifacts)
   • These still analyse REAL image/video data — not random numbers.
 
-Drop trained weights (FaceForensics++ / DFDC) at:
+Drop trained weights (Real-and-Fake-Faces / FaceForensics++ / DFDC) at:
   backend/modules/face/weights/face_model.pt
+
+--------------------------------------------------------------------------
+Phase 0 hard-gating (added):
+  The classifier must NEVER return an authenticity verdict for an image
+  that does not actually contain a detected human face. Before this
+  change, a no-face image silently fell through to a "global stats"
+  score and was still reported as REAL/FAKE. Now the pipeline is:
+
+      image
+        │
+        ▼
+   face detection
+        │
+   ┌────┴─────┐
+   no face     face(s) found
+   │              │
+   ▼              ▼
+ NO_FACE /   quality gate (size/blur/brightness)
+ UNSUPPORTED     │
+ (illustration    ┌────┴─────┐
+  heuristic)    low quality   ok
+                    │           │
+                    ▼           ▼
+              LOW_QUALITY_FACE  scored → authentic / uncertain / fake
+
+  The "uncertain" band is a genuine third outcome, not a disguised
+  coin-flip: mid-range scores get LOW confidence on purpose instead of
+  being forced into authentic/fake.
+
+  NOTE: the anime/cartoon/illustration check below is a heuristic
+  (color-palette + edge-density), not a trained OOD classifier. It is a
+  stop-gap for Phase 0. A proper human-face-vs-illustration classifier
+  is future work (see project plan).
+--------------------------------------------------------------------------
 """
 
 import os
@@ -37,7 +72,7 @@ class FrameResult:
 @dataclass
 class FaceAnalysisResult:
     score: float                     # 0-100  (higher = more authentic)
-    verdict: str                     # authentic | suspicious | fake
+    verdict: str                     # authentic | uncertain | fake | no_face | low_quality | unsupported_input
     confidence: float
 
     # Per-frame breakdown
@@ -67,6 +102,15 @@ class FaceAnalysisResult:
     model_loaded: bool
     processing_time_ms: int
 
+    # ── Phase 0 structured-gating fields (all have defaults so existing
+    #    call-sites that don't pass them keep working) ───────────────────
+    status: str = "ANALYZED"          # ANALYZED | NO_FACE_DETECTED |
+                                       # LOW_QUALITY_FACE | UNSUPPORTED_INPUT | ERROR
+    message: str = ""                 # human-readable explanation of the status
+    quality: Dict[str, Any] = field(default_factory=dict)      # primary-face quality report
+    faces: List[Dict[str, Any]] = field(default_factory=list)  # per-face breakdown (multi-face images)
+    face_detector_used: str = "haar_cascade"   # "mediapipe" | "haar_cascade"
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -75,12 +119,31 @@ class FaceDetector:
     """
     Face Deepfake Detection Engine.
 
-    Tier 1 (best): EfficientNet-B4 + OpenCV  — full deep learning pipeline
-    Tier 2:        OpenCV only                — pixel/statistical heuristics
-    Tier 3:        Pure Python                — header + DCT heuristics on JPEG/PNG
+    Face detector:  MediaPipe (preferred, gives real confidence scores) →
+                     falls back to OpenCV Haar Cascade if mediapipe isn't installed.
+    Classification:
+      Tier 1 (best): EfficientNet-B4 + OpenCV  — full deep learning pipeline
+      Tier 2:        OpenCV only                — pixel/statistical heuristics
+      Tier 3:        Pure Python                — header + DCT heuristics on JPEG/PNG
+
+    Every image/video goes through a hard gate before any authenticity
+    verdict is produced: face-detection → quality-check → classification.
+    No face, or a face too small/blurry/dark to analyse reliably, never
+    reaches the classifier — see analyze_file() / _analyze_image_cv2().
     """
 
     WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "face_model.pt")
+
+    # ── Phase 0 gating thresholds (heuristic starting points — recalibrate
+    #    once a labeled validation set with quality annotations exists) ────
+    MIN_FACE_DIM_PX = 50        # face crop shorter side, in pixels
+    MIN_FACE_AREA_RATIO = 0.01  # face area / image area
+    MIN_BLUR_VARIANCE = 25.0    # Laplacian variance floor
+    MIN_BRIGHTNESS = 25.0       # mean gray value floor
+    MAX_BRIGHTNESS = 235.0      # mean gray value ceiling
+    UNCERTAIN_LOW = 35.0        # score below this → "fake" band
+    UNCERTAIN_HIGH = 65.0       # score above this → "authentic" band
+    # scores strictly between UNCERTAIN_LOW and UNCERTAIN_HIGH → "uncertain"
 
     def __init__(self):
         self.model = None
@@ -88,6 +151,7 @@ class FaceDetector:
         self.cv2_available = False
         self.torch_available = False
         self.timm_available = False
+        self.mediapipe_available = False
         self._try_load_libs()
 
     def _try_load_libs(self):
@@ -104,6 +168,11 @@ class FaceDetector:
         try:
             import timm
             self.timm_available = True
+        except ImportError:
+            pass
+        try:
+            import mediapipe  # noqa: F401
+            self.mediapipe_available = True
         except ImportError:
             pass
 
@@ -209,6 +278,27 @@ class FaceDetector:
         texture  = self._texture_consistency_score(all_frames)
         freq_anom = self._frequency_anomaly_score(all_frames[0] if all_frames else None)
 
+        # ── GATE: no face in ANY sampled frame → don't emit a verdict ────
+        if faces_det == 0:
+            return FaceAnalysisResult(
+                status="NO_FACE_DETECTED", verdict="no_face",
+                message=("No human face was detected in any of the %d sampled frames "
+                          "of this video." % len(frame_results)),
+                score=0.0, confidence=85.0,
+                frames_analyzed=len(frame_results), faces_detected=0,
+                frame_scores=[round(s, 2) for s in scores],
+                worst_frame_score=round(min(scores), 2), best_frame_score=round(max(scores), 2),
+                texture_consistency=round(texture, 2),
+                blending_artifact_score=round(blending, 2),
+                temporal_stability=round(temporal_stability, 2),
+                compression_anomaly=round(freq_anom, 2),
+                face_symmetry=50.0, frequency_anomaly=round(freq_anom, 2),
+                width=width, height=height, fps=round(fps, 2),
+                duration_seconds=round(duration, 2), file_format="video",
+                model_used="N/A — no face reached the classifier",
+                model_loaded=self.model_loaded, processing_time_ms=0,
+            )
+
         final_score = float(np.mean(scores))
         # Weight worst-frame score heavier (deepfakes slip in bad frames)
         worst = min(scores)
@@ -216,8 +306,16 @@ class FaceDetector:
         final_score = round(final_score, 2)
 
         verdict, confidence = self._score_to_verdict(final_score)
+        status = "ANALYZED"
+        message = "Analysis complete."
+        if verdict == "uncertain":
+            message = "The available evidence is insufficient for a confident authenticity determination."
+        elif faces_det < len(frame_results):
+            message = ("Face detected in %d of %d sampled frames; result is based on "
+                        "frames where a face was found." % (faces_det, len(frame_results)))
 
         return FaceAnalysisResult(
+            status=status, message=message,
             score=final_score,
             verdict=verdict,
             confidence=confidence,
@@ -242,20 +340,25 @@ class FaceDetector:
         )
 
     def _analyze_video_fallback(self, path: str) -> FaceAnalysisResult:
-        """Pure-python fallback: read file bytes, estimate via file statistics."""
-        size = os.path.getsize(path)
-        # Large file → more frames → more data to analyse
-        score = min(90, 40 + size / 1_000_000 * 2)
-        verdict, conf = self._score_to_verdict(score)
+        """
+        Pure-python fallback (no opencv installed): cannot run face detection
+        at all, so it MUST NOT claim an authenticity verdict — that would be
+        exactly the "blindly returns REAL/FAKE" bug this phase fixes. This
+        path should rarely trigger since opencv-python is a hard requirement,
+        but if it does, we say so plainly instead of guessing from file size.
+        """
         return FaceAnalysisResult(
-            score=round(score, 2), verdict=verdict, confidence=conf,
+            status="ERROR", verdict="uncertain",
+            message=("Face detection is unavailable (opencv-python is not installed on "
+                      "the server), so no authenticity verdict can be produced for this video."),
+            score=0.0, confidence=0.0,
             frames_analyzed=0, faces_detected=0, frame_scores=[],
-            worst_frame_score=round(score, 2), best_frame_score=round(score, 2),
-            texture_consistency=50, blending_artifact_score=50,
-            temporal_stability=50, compression_anomaly=50, face_symmetry=50,
-            frequency_anomaly=50, width=0, height=0, fps=0, duration_seconds=0,
+            worst_frame_score=0.0, best_frame_score=0.0,
+            texture_consistency=0, blending_artifact_score=0,
+            temporal_stability=0, compression_anomaly=0, face_symmetry=0,
+            frequency_anomaly=0, width=0, height=0, fps=0, duration_seconds=0,
             file_format="video",
-            model_used="Fallback (install opencv-python for full analysis)",
+            model_used="Unavailable (install opencv-python)",
             model_loaded=False, processing_time_ms=0,
         )
 
@@ -271,35 +374,131 @@ class FaceDetector:
 
         img = cv2.imread(path)
         if img is None:
-            return self._empty_result(0, 0, 0, 0, "image")
+            r = self._empty_result(0, 0, 0, 0, "image")
+            r.status = "ERROR"
+            r.message = "Could not read this file as an image."
+            return r
 
         h, w = img.shape[:2]
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        face_cascade = cv2.CascadeClassifier(
+        detected_faces = self._detect_faces(img)   # list of {"box":(x,y,fw,fh), "detector_confidence":float}
+        detector_name = "mediapipe" if self.mediapipe_available else "haar_cascade"
+
+        # ── GATE 1: no face at all ───────────────────────────────────────
+        if not detected_faces:
+            category, info = self._classify_non_face_image(img)
+            base = self._empty_result(w, h, 0, 0, "image")
+            base.faces_detected = 0
+            base.frames_analyzed = 1
+            base.face_detector_used = detector_name
+            base.model_used = "N/A — no face reached the classifier"
+            base.model_loaded = self.model_loaded
+            base.score = 0.0
+            base.quality = {"non_face_heuristic": info}
+
+            if category == "blank":
+                base.status = "NO_FACE_DETECTED"
+                base.verdict = "no_face"
+                base.confidence = 92.0
+                base.message = ("This image appears to be blank or a solid/near-solid color. "
+                                 "No human face was detected — there is no photo content to analyze.")
+            elif category == "text_document":
+                base.status = "UNSUPPORTED_INPUT"
+                base.verdict = "unsupported_input"
+                base.confidence = 60.0
+                base.message = ("This looks like a text document or screenshot, not a photo of "
+                                 "a person. No human face was detected.")
+            elif category == "illustration":
+                base.status = "UNSUPPORTED_INPUT"
+                base.verdict = "unsupported_input"
+                base.confidence = 55.0  # heuristic-only, deliberately not high
+                base.message = ("This does not appear to be a real human photograph — it looks "
+                                 "like a cartoon, anime, or illustrated image. No human face was "
+                                 "detected (heuristic check, not a trained classifier).")
+            else:  # photo_or_unknown
+                base.status = "NO_FACE_DETECTED"
+                base.verdict = "no_face"
+                base.confidence = 85.0
+                base.message = "No human face was detected in this image."
+            return base
+
+        # ── GATE 2 + scoring: quality-check each detected face ───────────
+        cascade_for_helpers = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-        faces = face_cascade.detectMultiScale(gray, 1.1, 4, minSize=(60, 60))
 
-        face_detected = len(faces) > 0
+        per_face_results = []
+        scored = []  # faces that passed the quality gate
+        for i, fd in enumerate(detected_faces):
+            box = fd["box"]
+            quality = self._assess_face_quality(img, box)
+            face_entry = {
+                "face_id": i + 1,
+                "box": {"x": box[0], "y": box[1], "width": box[2], "height": box[3]},
+                "detector_confidence": fd.get("detector_confidence", 0.6),
+                "quality": quality,
+            }
+            if not quality["acceptable"]:
+                face_entry["status"] = "LOW_QUALITY_FACE"
+                face_entry["prediction"] = None
+                face_entry["confidence"] = None
+                face_entry["message"] = ("Face #%d is too %s for a reliable result." %
+                                          (i + 1, " / ".join(quality["issues"])))
+            else:
+                if self.model_loaded:
+                    score = self._score_frame_model(img, box)
+                else:
+                    score = self._score_frame_heuristic(img, box)
+                verdict, confidence = self._score_to_verdict(score)
+                face_entry["status"] = "ANALYZED"
+                face_entry["score"] = round(score, 2)
+                face_entry["prediction"] = verdict
+                face_entry["confidence"] = confidence
+                scored.append((score, verdict, confidence, box))
+            per_face_results.append(face_entry)
 
-        if self.model_loaded and face_detected:
-            score = self._score_frame_model(img, faces[0])
-        elif face_detected:
-            score = self._score_frame_heuristic(img, faces[0])
-        else:
-            score = self._score_frame_global(img)
+        primary_quality = per_face_results[0]["quality"]
+
+        # ── If every detected face failed the quality gate ───────────────
+        if not scored:
+            base = self._empty_result(w, h, 0, 0, "image")
+            base.faces_detected = len(detected_faces)
+            base.frames_analyzed = 1
+            base.face_detector_used = detector_name
+            base.status = "LOW_QUALITY_FACE"
+            base.verdict = "low_quality"
+            base.score = 0.0
+            base.confidence = 0.0
+            base.quality = primary_quality
+            base.faces = per_face_results
+            base.model_used = "N/A — face(s) failed quality gate"
+            base.model_loaded = self.model_loaded
+            base.message = ("Detected %d face(s) but none were clear/large enough to "
+                             "analyse reliably." % len(detected_faces))
+            return base
+
+        # ── At least one face scored — build the aggregate result on the
+        #    primary (largest) face, but expose every face's result too ──
+        scored.sort(key=lambda t: t[3][2] * t[3][3], reverse=True)  # sort by box area desc
+        primary_score, primary_verdict, primary_confidence, primary_box = scored[0]
 
         texture   = self._texture_consistency_score([img])
         freq_anom = self._frequency_anomaly_score(img)
-        symmetry  = self._face_symmetry_score([img], face_cascade) if face_detected else 50.0
-        blending  = self._blending_artifact_score([img], face_cascade)
+        symmetry  = self._face_symmetry_score([img], cascade_for_helpers)
+        blending  = self._blending_artifact_score([img], cascade_for_helpers)
 
-        verdict, confidence = self._score_to_verdict(score)
+        status = "ANALYZED"
+        message = "Analysis complete."
+        if primary_verdict == "uncertain":
+            message = ("The available evidence is insufficient for a confident "
+                       "authenticity determination on the primary face.")
 
         return FaceAnalysisResult(
-            score=round(score, 2), verdict=verdict, confidence=confidence,
-            frames_analyzed=1, faces_detected=int(len(faces)),
-            frame_scores=[round(score, 2)],
-            worst_frame_score=round(score, 2), best_frame_score=round(score, 2),
+            status=status, message=message,
+            quality=primary_quality, faces=per_face_results,
+            face_detector_used=detector_name,
+            score=round(primary_score, 2), verdict=primary_verdict, confidence=primary_confidence,
+            frames_analyzed=1, faces_detected=len(detected_faces),
+            frame_scores=[round(primary_score, 2)],
+            worst_frame_score=round(primary_score, 2), best_frame_score=round(primary_score, 2),
             texture_consistency=round(texture, 2),
             blending_artifact_score=round(blending, 2),
             temporal_stability=100.0,
@@ -311,32 +510,162 @@ class FaceDetector:
             model_loaded=self.model_loaded, processing_time_ms=0,
         )
 
-    def _analyze_image_pure_python(self, path: str) -> FaceAnalysisResult:
-        """Analyse JPEG/PNG via pure Python — DCT & noise floor estimation."""
-        try:
-            score = self._jpeg_heuristic(path)
-        except Exception:
-            score = 55.0
+    # ── Face detection (unified: mediapipe preferred, haar fallback) ─────
 
-        freq_anom = 100 - score
-        verdict, confidence = self._score_to_verdict(score)
+    def _detect_faces(self, img) -> List[Dict[str, Any]]:
+        if self.mediapipe_available:
+            try:
+                return self._detect_faces_mediapipe(img)
+            except Exception as e:
+                print(f"[FaceDetector] mediapipe failed, falling back to haar: {e}")
+        return self._detect_faces_haar(img)
+
+    def _detect_faces_mediapipe(self, img) -> List[Dict[str, Any]]:
+        import cv2
+        import mediapipe as mp
+        h, w = img.shape[:2]
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        faces = []
+        mp_fd = mp.solutions.face_detection
+        with mp_fd.FaceDetection(model_selection=1, min_detection_confidence=0.5) as detector:
+            results = detector.process(rgb)
+            if results.detections:
+                for det in results.detections:
+                    bbox = det.location_data.relative_bounding_box
+                    x = max(0, int(bbox.xmin * w))
+                    y = max(0, int(bbox.ymin * h))
+                    fw = min(int(bbox.width * w), w - x)
+                    fh = min(int(bbox.height * h), h - y)
+                    if fw <= 0 or fh <= 0:
+                        continue
+                    conf = float(det.score[0]) if det.score else 0.9
+                    faces.append({"box": (x, y, fw, fh), "detector_confidence": round(conf, 3)})
+        return faces
+
+    def _detect_faces_haar(self, img) -> List[Dict[str, Any]]:
+        import cv2
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        boxes = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60))
+        # Haar doesn't give a real confidence score; use a fixed conservative
+        # placeholder so downstream code has a consistent field to read.
+        return [{"box": tuple(int(v) for v in b), "detector_confidence": 0.6} for b in boxes]
+
+    # ── Face quality gate ──────────────────────────────────────────────
+
+    def _assess_face_quality(self, img, box) -> Dict[str, Any]:
+        import cv2, numpy as np
+        x, y, fw, fh = box
+        h, w = img.shape[:2]
+        crop = img[y:y + fh, x:x + fw]
+        if crop.size == 0:
+            return {"acceptable": False, "issues": ["empty_crop"], "face_width": fw,
+                    "face_height": fh, "blur_score": 0.0, "brightness": 0.0, "face_area_ratio": 0.0}
+
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        brightness = float(np.mean(gray))
+        face_area_ratio = (fw * fh) / float(w * h)
+
+        issues = []
+        if min(fw, fh) < self.MIN_FACE_DIM_PX or face_area_ratio < self.MIN_FACE_AREA_RATIO:
+            issues.append("face_too_small")
+        if blur_score < self.MIN_BLUR_VARIANCE:
+            issues.append("too_blurry")
+        if brightness < self.MIN_BRIGHTNESS or brightness > self.MAX_BRIGHTNESS:
+            issues.append("poor_lighting")
+
+        return {
+            "acceptable": len(issues) == 0,
+            "issues": issues,
+            "face_width": fw, "face_height": fh,
+            "blur_score": round(blur_score, 2),
+            "brightness": round(brightness, 2),
+            "face_area_ratio": round(face_area_ratio, 4),
+        }
+
+    # ── Non-face image classification (blank / text-document / illustration) ─
+    # NOTE: still a heuristic (no trained classifier), but now combines four
+    # signals instead of two, calibrated against synthetic blank/text/cartoon/
+    # photo-noise test images to fix two confirmed failure modes: a plain
+    # text document was being misread as "illustration", and a cel-shaded
+    # cartoon face was NOT being flagged as illustration at all.
+    #
+    # Signals:
+    #   - mean_saturation : grayscale (~0) vs colored content
+    #   - edge_ratio       : how much of the image is edges (text/outlines)
+    #   - flat_ratio        : fraction of pixels that are locally near-uniform
+    #                        (blurred vs original difference near zero) —
+    #                        this is what actually separates cel-shaded/flat
+    #                        cartoon art and document backgrounds from real
+    #                        photos, which almost always have sensor noise/
+    #                        gradients even in "smooth" areas.
+    #   - unique_colors    : quantized color-palette size
+
+    def _classify_non_face_image(self, img) -> Tuple[str, Dict[str, Any]]:
+        """
+        Returns (category, info) where category is one of:
+          "blank", "text_document", "illustration", "photo_or_unknown"
+        Only called when no face was detected, to give a more specific
+        message than a bare "no face found".
+        """
+        import cv2, numpy as np
+        try:
+            small = cv2.resize(img, (200, 200))
+            hsv = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)
+            mean_saturation = float(hsv[:, :, 1].mean())
+
+            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 80, 160)
+            edge_ratio = float(edges.mean()) / 255.0
+
+            blurred = cv2.GaussianBlur(small, (7, 7), 0)
+            diff = cv2.absdiff(small, blurred).astype(np.float32).sum(axis=2)
+            flat_ratio = float((diff < 6).mean())
+
+            quantized = (small // 24) * 24
+            unique_colors = len(np.unique(quantized.reshape(-1, 3), axis=0))
+
+            info = {
+                "mean_saturation": round(mean_saturation, 2),
+                "edge_ratio": round(edge_ratio, 4),
+                "flat_ratio": round(flat_ratio, 3),
+                "unique_colors": int(unique_colors),
+                "note": "heuristic only, not a trained classifier",
+            }
+
+            if edge_ratio < 0.005 and flat_ratio > 0.95:
+                return "blank", info
+            if mean_saturation < 12 and edge_ratio > 0.02:
+                return "text_document", info
+            if flat_ratio > 0.4 and mean_saturation >= 15:
+                return "illustration", info
+            return "photo_or_unknown", info
+        except Exception:
+            return "photo_or_unknown", {"note": "classification failed, assumed photo"}
+
+    def _analyze_image_pure_python(self, path: str) -> FaceAnalysisResult:
+        """
+        No-opencv fallback: cannot run face detection, so — same principle as
+        the video fallback above — this must not emit an authenticity
+        verdict. It's kept only to report file-format diagnostics.
+        """
         size = os.path.getsize(path)
-        # Guess dimensions from file size
         est_side = int(math.sqrt(size / 3))
 
         return FaceAnalysisResult(
-            score=round(score, 2), verdict=verdict, confidence=confidence,
-            frames_analyzed=1, faces_detected=0, frame_scores=[round(score, 2)],
-            worst_frame_score=round(score, 2), best_frame_score=round(score, 2),
-            texture_consistency=round(score * 0.9, 2),
-            blending_artifact_score=round(freq_anom * 0.7, 2),
-            temporal_stability=100.0,
-            compression_anomaly=round(freq_anom, 2),
-            face_symmetry=50.0,
-            frequency_anomaly=round(freq_anom, 2),
-            width=est_side, height=est_side, fps=0, duration_seconds=0,
+            status="ERROR", verdict="uncertain",
+            message=("Face detection is unavailable (opencv-python is not installed on "
+                      "the server), so no authenticity verdict can be produced for this image."),
+            score=0.0, confidence=0.0,
+            frames_analyzed=0, faces_detected=0, frame_scores=[],
+            worst_frame_score=0.0, best_frame_score=0.0,
+            texture_consistency=0, blending_artifact_score=0,
+            temporal_stability=0, compression_anomaly=0, face_symmetry=0,
+            frequency_anomaly=0, width=est_side, height=est_side, fps=0, duration_seconds=0,
             file_format="image",
-            model_used="Pure Python JPEG Heuristic (install opencv-python for full analysis)",
+            model_used="Unavailable (install opencv-python)",
             model_loaded=False, processing_time_ms=0,
         )
 
@@ -551,8 +880,35 @@ class FaceDetector:
             model_used="Could not read file", model_loaded=False, processing_time_ms=0,
         )
 
+    @classmethod
+    def _score_to_verdict(cls, score: float) -> Tuple[str, float]:
+        """
+        Three real outcomes, not two-with-a-fig-leaf:
+          score >= UNCERTAIN_HIGH (65)         → "authentic"
+          score <= UNCERTAIN_LOW  (35)         → "fake"
+          UNCERTAIN_LOW < score < UNCERTAIN_HIGH → "uncertain"  (deliberately low confidence)
+        Thresholds are heuristic starting points (see class constants) —
+        replace with ROC/PR-calibrated values once a labeled validation
+        set is run through this pipeline (Phase 3 of the project plan).
+        """
+        if score >= cls.UNCERTAIN_HIGH:
+            span = 100 - cls.UNCERTAIN_HIGH
+            conf = 60 + min((score - cls.UNCERTAIN_HIGH) / span, 1.0) * 39
+            return "authentic", round(min(conf, 99.9), 2)
+        if score <= cls.UNCERTAIN_LOW:
+            span = cls.UNCERTAIN_LOW
+            conf = 60 + min((cls.UNCERTAIN_LOW - score) / span, 1.0) * 39
+            return "fake", round(min(conf, 99.9), 2)
+        # genuine middle band — confidence peaks near the edges of the band
+        # and drops to its lowest right at the midpoint (50)
+        dist_from_edge = min(score - cls.UNCERTAIN_LOW, cls.UNCERTAIN_HIGH - score)
+        band_half = (cls.UNCERTAIN_HIGH - cls.UNCERTAIN_LOW) / 2
+        conf = 45 - (dist_from_edge / band_half) * 30  # ranges ~15-45
+        return "uncertain", round(max(conf, 10.0), 2)
+
     @staticmethod
-    def _score_to_verdict(score: float) -> Tuple[str, float]:
+    def _score_to_verdict_legacy(score: float) -> Tuple[str, float]:
+        """Kept for reference only — old uncalibrated 70/45 split, unused."""
         if score >= 70:
             return "authentic", round(min((score - 70) / 30 * 100, 99.9), 2)
         if score >= 45:

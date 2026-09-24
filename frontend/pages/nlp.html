@@ -301,9 +301,9 @@
       const body = document.getElementById("nlp-result-body");
       body.style.display = "flex";
       const score = Math.round(summary.score);
-      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "suspicious" : "fake");
-      const vcMap = { authentic: "CLEAR", suspicious: "MEDIUM", fake: "CRITICAL" };
-      const labelMap = { authentic: "Natural Human Language", suspicious: "Mixed Signals — Review", fake: "AI-Generated Text Detected" };
+      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "uncertain" : "fake");
+      const vcMap = { authentic: "CLEAR", uncertain: "MEDIUM", suspicious: "MEDIUM", fake: "CRITICAL", no_face: "MEDIUM", low_quality: "MEDIUM", unsupported_input: "MEDIUM" };
+      const labelMap = { authentic: "Natural Human Language", uncertain: "Insufficient Evidence — Review", suspicious: "Mixed Signals — Review", fake: "AI-Generated Text Detected", no_face: "No Face Detected", low_quality: "Low Quality Input", unsupported_input: "Unsupported Input" };
       const color = scoreColor(score);
 
       const r = {
@@ -336,7 +336,7 @@
 
       body.innerHTML =
         '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;font-weight:700;letter-spacing:-0.04em;color:' + color + ';line-height:1">' + r.score + '%</div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-top:5px">Linguistic Authenticity</div></div>' +
-        '<div class="severity-badge ' + vcMap[verdict] + '" style="width:100%;justify-content:center">' + labelMap[verdict] + '</div>' +
+        '<div class="severity-badge ' + (vcMap[verdict] || "MEDIUM") + '" style="width:100%;justify-content:center">' + (labelMap[verdict] || ("Unrecognized verdict: " + verdict)) + '</div>' +
         '<div class="scan-meter">' + meterHTML + '</div>' +
         anomalyHTML +
         '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' + statsHTML + '</div>';
