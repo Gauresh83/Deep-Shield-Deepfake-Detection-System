@@ -1,2466 +1,1471 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeepShield — Multi-Modal Deepfake Detection</title>
-  <meta name="description"
-    content="DeepShield combines face analysis, voice spoof detection, and linguistic AI analysis into one real-time verdict. Catch deepfakes before they fool anyone." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
-    rel="stylesheet" />
-
-  <style>
-    /* ── RESET & BASE ─────────────────────────────────────────── */
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased
-    }
-
-    img {
-      max-width: 100%;
-      display: block
-    }
-
-    a {
-      text-decoration: none;
-      color: inherit
-    }
-
-    /* ── DESIGN TOKENS ───────────────────────────────────────── */
-    :root {
-      /* Brand gradient: deep navy → electric blue → violet */
-      --c-navy: #060B18;
-      --c-navy-2: #0D1427;
-      --c-blue: #1B5EF7;
-      --c-blue-light: #4B82FF;
-      --c-violet: #7C3FE4;
-      --c-violet-2: #9F6EFF;
-      --c-white: #FFFFFF;
-      --c-offwhite: #F7F8FC;
-      --c-gray-1: #E8ECF7;
-      --c-gray-2: #9AA5C4;
-      --c-gray-3: #5A6585;
-      --c-text: #0D1427;
-
-      /* Gradients */
-      --g-hero: linear-gradient(135deg, #060B18 0%, #0D1427 40%, #1a1060 70%, #0D1427 100%);
-      --g-accent: linear-gradient(135deg, #1B5EF7, #7C3FE4);
-      --g-card: linear-gradient(160deg, rgba(27, 94, 247, 0.08) 0%, rgba(124, 63, 228, 0.04) 100%);
-      --g-logo: linear-gradient(135deg, #1B5EF7 0%, #7C3FE4 100%);
-
-      /* Type */
-      --f-display: 'Syne', sans-serif;
-      --f-body: 'Inter', sans-serif;
-
-      /* Space */
-      --r-sm: 6px;
-      --r-md: 12px;
-      --r-lg: 20px;
-      --r-xl: 32px;
-      --r-pill: 100px;
-
-      /* Motion */
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    body {
-      font-family: var(--f-body);
-      color: var(--c-text);
-      background: var(--c-white);
-      overflow-x: hidden;
-    }
-
-    /* ── TYPOGRAPHY ──────────────────────────────────────────── */
-    .display-xl {
-      font-family: var(--f-display);
-      font-size: clamp(2.6rem, 5.5vw, 4.8rem);
-      font-weight: 800;
-      line-height: 1.08;
-      letter-spacing: -0.03em
-    }
-
-    .display-lg {
-      font-family: var(--f-display);
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      font-weight: 700;
-      line-height: 1.12;
-      letter-spacing: -0.025em
-    }
-
-    .display-md {
-      font-family: var(--f-display);
-      font-size: clamp(1.4rem, 2.5vw, 2rem);
-      font-weight: 700;
-      line-height: 1.2;
-      letter-spacing: -0.015em
-    }
-
-    .body-lg {
-      font-size: 1.125rem;
-      line-height: 1.7;
-      color: var(--c-gray-2)
-    }
-
-    .body-md {
-      font-size: 1rem;
-      line-height: 1.65;
-      color: var(--c-gray-3)
-    }
-
-    .label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-blue)
-    }
-
-    /* ── LAYOUT ──────────────────────────────────────────────── */
-    .container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px
-    }
-
-    .section {
-      padding: 96px 0
-    }
-
-    /* ── NAV ─────────────────────────────────────────────────── */
-    .nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      padding: 0 40px;
-      height: 68px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(6, 11, 24, 0.0);
-      backdrop-filter: blur(0px);
-      transition: background .3s, backdrop-filter .3s, border-color .3s;
-      border-bottom: 1px solid transparent;
-    }
-
-    .nav.scrolled {
-      background: rgba(6, 11, 24, 0.88);
-      backdrop-filter: blur(18px);
-      border-bottom-color: rgba(255, 255, 255, 0.06);
-    }
-
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff
-    }
-
-    .nav-logo-mark {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: var(--g-logo);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .nav-logo-text {
-      font-family: var(--f-display);
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #fff
-    }
-
-    .nav-logo-text span {
-      color: var(--c-violet-2)
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 32px
-    }
-
-    .nav-links a {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.7);
-      transition: color .2s
-    }
-
-    .nav-links a:hover {
-      color: #fff
-    }
-
-    .nav-cta {
-      display: flex;
-      align-items: center;
-      gap: 12px
-    }
-
-    .btn-ghost-nav {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.75);
-      padding: 8px 16px;
-      border-radius: var(--r-pill);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      transition: all .2s
-    }
-
-    .btn-ghost-nav:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff
-    }
-
-    .btn-primary-nav {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #fff;
-      padding: 9px 20px;
-      border-radius: var(--r-pill);
-      background: var(--g-accent);
-      transition: opacity .2s;
-      box-shadow: 0 4px 20px rgba(27, 94, 247, 0.35)
-    }
-
-    .btn-primary-nav:hover {
-      opacity: 0.88
-    }
-
-    /* ── HERO ─────────────────────────────────────────────────── */
-    .hero {
-      min-height: 100vh;
-      background: var(--g-hero);
-      display: flex;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-      padding-top: 68px;
-    }
-
-    .hero-mesh {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(27, 94, 247, 0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 70% at 80% 30%, rgba(124, 63, 228, 0.22) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 40% at 50% 80%, rgba(75, 130, 255, 0.12) 0%, transparent 60%);
-    }
-
-    .hero-grid-lines {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 100%);
-    }
-
-    .hero-inner {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 80px 24px;
-    }
-
-    .hero-content {}
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px 6px 8px;
-      background: rgba(27, 94, 247, 0.12);
-      border: 1px solid rgba(27, 94, 247, 0.3);
-      border-radius: var(--r-pill);
-      margin-bottom: 28px;
-    }
-
-    .hero-badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #4B82FF;
-      animation: pulse-dot 2s infinite
-    }
-
-    @keyframes pulse-dot {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.4
-      }
-    }
-
-    .hero-badge span {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #6B9EFF;
-      letter-spacing: 0.06em;
-      text-transform: uppercase
-    }
-
-    .hero-title {
-      color: #fff;
-      margin-bottom: 24px
-    }
-
-    .hero-title em {
-      font-style: normal;
-      background: var(--g-accent);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text
-    }
-
-    .hero-sub {
-      margin-bottom: 40px;
-      max-width: 480px
-    }
-
-    .hero-sub p {
-      font-size: 1.1rem;
-      line-height: 1.75;
-      color: rgba(255, 255, 255, 0.6)
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 56px
-    }
-
-    .btn-primary-hero {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-      padding: 14px 28px;
-      border-radius: var(--r-pill);
-      background: var(--g-accent);
-      box-shadow: 0 8px 32px rgba(27, 94, 247, 0.4);
-      transition: transform .2s, box-shadow .2s;
-    }
-
-    .btn-primary-hero:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(27, 94, 247, 0.5)
-    }
-
-    .btn-ghost-hero {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
-      padding: 14px 24px;
-      border-radius: var(--r-pill);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      transition: all .2s;
-    }
-
-    .btn-ghost-hero:hover {
-      background: rgba(255, 255, 255, 0.07);
-      color: #fff
-    }
-
-    .hero-stats {
-      display: flex;
-      gap: 0
-    }
-
-    .hero-stat {
-      padding-right: 32px;
-      border-right: 1px solid rgba(255, 255, 255, 0.1)
-    }
-
-    .hero-stat:last-child {
-      border-right: none;
-      padding-right: 0;
-      padding-left: 32px
-    }
-
-    .hero-stat:first-child {
-      padding-left: 0
-    }
-
-    .hero-stat-num {
-      font-family: var(--f-display);
-      font-size: 2rem;
-      font-weight: 800;
-      color: #fff;
-      line-height: 1
-    }
-
-    .hero-stat-num span {
-      font-size: 1.2rem;
-      color: var(--c-blue-light)
-    }
-
-    .hero-stat-label {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.45);
-      margin-top: 4px;
-      line-height: 1.4
-    }
-
-    /* Hero scan card */
-    .hero-visual {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center
-    }
-
-    .scan-card {
-      width: 100%;
-      max-width: 420px;
-      background: rgba(13, 20, 39, 0.7);
-      border: 1px solid rgba(75, 130, 255, 0.2);
-      border-radius: 24px;
-      padding: 28px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .scan-card::before {
-      content: '';
-      position: absolute;
-      top: -40%;
-      left: -10%;
-      width: 60%;
-      height: 60%;
-      background: radial-gradient(ellipse, rgba(27, 94, 247, 0.15), transparent 70%);
-      pointer-events: none;
-    }
-
-    .scan-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px
-    }
-
-    .scan-card-title {
-      font-family: var(--f-display);
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #fff
-    }
-
-    .live-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: var(--r-pill)
-    }
-
-    .live-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #10B981;
-      animation: pulse-dot 1.5s infinite
-    }
-
-    .live-pill span {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: #10B981;
-      letter-spacing: 0.05em
-    }
-
-    .face-ring-area {
-      display: flex;
-      justify-content: center;
-      margin: 4px 0 24px;
-      position: relative
-    }
-
-    .face-rings {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 1px solid rgba(75, 130, 255, 0.25);
-      animation: spin-ring linear infinite
-    }
-
-    .ring-1 {
-      width: 100px;
-      height: 100px;
-      animation-duration: 12s
-    }
-
-    .ring-2 {
-      width: 76px;
-      height: 76px;
-      border-color: rgba(124, 63, 228, 0.3);
-      animation-duration: 8s;
-      animation-direction: reverse
-    }
-
-    .ring-3 {
-      width: 54px;
-      height: 54px;
-      border-color: rgba(75, 130, 255, 0.4);
-      animation-duration: 5s
-    }
-
-    @keyframes spin-ring {
-      to {
-        transform: rotate(360deg)
-      }
-    }
-
-    .face-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--g-accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1;
-      box-shadow: 0 0 30px rgba(27, 94, 247, 0.4)
-    }
-
-    .scan-beam {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(75, 130, 255, 0.8), transparent);
-      animation: scan-beam 2.2s ease-in-out infinite;
-      top: 20px
-    }
-
-    @keyframes scan-beam {
-      0% {
-        top: 0;
-        opacity: 0
-      }
-
-      20% {
-        opacity: 1
-      }
-
-      80% {
-        opacity: 1
-      }
-
-      100% {
-        top: 100%;
-        opacity: 0
-      }
-    }
-
-    .score-bars {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-bottom: 20px
-    }
-
-    .score-row {
-      display: flex;
-      align-items: center;
-      gap: 10px
-    }
-
-    .score-label {
-      font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.55);
-      width: 100px;
-      flex-shrink: 0
-    }
-
-    .score-track {
-      flex: 1;
-      height: 5px;
-      background: rgba(255, 255, 255, 0.07);
-      border-radius: var(--r-pill);
-      overflow: hidden
-    }
-
-    .score-fill {
-      height: 100%;
-      border-radius: var(--r-pill);
-      transition: width .8s var(--ease-out)
-    }
-
-    .score-pct {
-      font-family: 'Inter', monospace;
-      font-size: 0.75rem;
-      font-weight: 700;
-      width: 30px;
-      text-align: right;
-      flex-shrink: 0
-    }
-
-    .verdict-banner {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      border-radius: var(--r-md);
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-    }
-
-    .verdict-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: rgba(239, 68, 68, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0
-    }
-
-    .verdict-text {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #F87171
-    }
-
-    .verdict-sub {
-      font-size: 0.72rem;
-      color: rgba(239, 68, 68, 0.65);
-      margin-top: 1px
-    }
-
-    /* ── TRUST BAR ───────────────────────────────────────────── */
-    .trust-bar {
-      background: var(--c-offwhite);
-      border-top: 1px solid var(--c-gray-1);
-      border-bottom: 1px solid var(--c-gray-1);
-      padding: 24px 0;
-    }
-
-    .trust-bar-inner {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 48px;
-      flex-wrap: wrap
-    }
-
-    .trust-item {
-      display: flex;
-      align-items: center;
-      gap: 10px
-    }
-
-    .trust-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0
-    }
-
-    .trust-label {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--c-gray-3)
-    }
-
-    /* ── SECTIONS COMMON ─────────────────────────────────────── */
-    .section-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--c-blue);
-      margin-bottom: 16px;
-    }
-
-    .section-badge::before {
-      content: '';
-      display: block;
-      width: 16px;
-      height: 2px;
-      background: var(--g-accent);
-      border-radius: 1px
-    }
-
-    .section-heading {
-      margin-bottom: 16px;
-      color: var(--c-navy)
-    }
-
-    .section-sub {
-      max-width: 560px;
-      color: var(--c-gray-3);
-      font-size: 1.05rem;
-      line-height: 1.7
-    }
-
-    .section-center {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 64px
-    }
-
-    .section-center .section-badge::before {
-      display: none
-    }
-
-    /* ── FEATURES ────────────────────────────────────────────── */
-    .features {
-      background: #fff
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 24px
-    }
-
-    .feature-card {
-      padding: 36px;
-      border: 1px solid var(--c-gray-1);
-      border-radius: var(--r-xl);
-      position: relative;
-      overflow: hidden;
-      transition: border-color .25s, box-shadow .25s;
-      background: #fff;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: var(--fc-grad, var(--g-accent));
-      opacity: 0;
-      transition: opacity .25s;
-    }
-
-    .feature-card:hover {
-      border-color: transparent;
-      box-shadow: 0 8px 48px rgba(27, 94, 247, 0.1)
-    }
-
-    .feature-card:hover::before {
-      opacity: 1
-    }
-
-    .feature-card-num {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--c-gray-2);
-      margin-bottom: 20px
-    }
-
-    .feature-icon-ring {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      background: var(--fi-bg, rgba(27, 94, 247, 0.08));
-    }
-
-    .feature-card h3 {
-      font-family: var(--f-display);
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--c-navy);
-      margin-bottom: 10px;
-      letter-spacing: -0.01em
-    }
-
-    .feature-card p {
-      font-size: 0.9rem;
-      line-height: 1.65;
-      color: var(--c-gray-3);
-      margin-bottom: 20px
-    }
-
-    .feature-tags {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap
-    }
-
-    .ftag {
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: var(--r-pill);
-      background: var(--c-gray-1);
-      color: var(--c-gray-3)
-    }
-
-    /* ── HOW IT WORKS ────────────────────────────────────────── */
-    .how {
-      background: var(--c-offwhite);
-      border-top: 1px solid var(--c-gray-1);
-      border-bottom: 1px solid var(--c-gray-1)
-    }
-
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0;
-      position: relative
-    }
-
-    .steps-grid::before {
-      content: '';
-      position: absolute;
-      top: 38px;
-      left: 12.5%;
-      right: 12.5%;
-      height: 1px;
-      background: var(--c-gray-1);
-      z-index: 0;
-    }
-
-    .step {
-      text-align: center;
-      padding: 0 20px;
-      position: relative;
-      z-index: 1
-    }
-
-    .step-num-circle {
-      width: 76px;
-      height: 76px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      background: #fff;
-      border: 1px solid var(--c-gray-1);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-      position: relative;
-    }
-
-    .step-num-circle svg {
-      flex-shrink: 0
-    }
-
-    .step-num {
-      font-family: var(--f-display);
-      font-size: 0.7rem;
-      font-weight: 800;
-      color: var(--c-blue);
-      letter-spacing: 0.08em;
-      margin-bottom: 8px
-    }
-
-    .step h3 {
-      font-family: var(--f-display);
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--c-navy);
-      margin-bottom: 8px
-    }
-
-    .step p {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--c-gray-3)
-    }
-
-    /* ── RESULTS ─────────────────────────────────────────────── */
-    .results {
-      background: #fff
-    }
-
-    .results-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-      margin-bottom: 48px
-    }
-
-    .metric-card {
-      padding: 32px 24px;
-      text-align: center;
-      border: 1px solid var(--c-gray-1);
-      border-radius: var(--r-xl);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .metric-card::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--mc-grad, var(--g-accent));
-    }
-
-    .metric-num {
-      font-family: var(--f-display);
-      font-size: 2.6rem;
-      font-weight: 800;
-      color: var(--mc-color, var(--c-blue));
-      line-height: 1;
-      margin-bottom: 4px
-    }
-
-    .metric-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--c-navy);
-      margin-bottom: 4px
-    }
-
-    .metric-sub {
-      font-size: 0.75rem;
-      color: var(--c-gray-3)
-    }
-
-    .findings-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px
-    }
-
-    .finding {
-      display: flex;
-      gap: 16px;
-      padding: 20px 24px;
-      border: 1px solid var(--c-gray-1);
-      border-radius: var(--r-lg)
-    }
-
-    .finding-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-top: 6px;
-      background: var(--fd-color, var(--c-blue))
-    }
-
-    .finding h4 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--c-navy);
-      margin-bottom: 4px
-    }
-
-    .finding p {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--c-gray-3)
-    }
-
-    /* ── USE CASES ───────────────────────────────────────────── */
-    .use-cases {
-      background: var(--c-offwhite);
-      border-top: 1px solid var(--c-gray-1)
-    }
-
-    .uc-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px
-    }
-
-    .uc-card {
-      border-radius: var(--r-xl);
-      overflow: hidden;
-      border: 1px solid var(--c-gray-1);
-      background: #fff;
-      transition: box-shadow .25s, transform .25s
-    }
-
-    .uc-card:hover {
-      box-shadow: 0 12px 48px rgba(27, 94, 247, 0.1);
-      transform: translateY(-4px)
-    }
-
-    .uc-img {
-      height: 180px;
-      overflow: hidden;
-      position: relative
-    }
-
-    .uc-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: brightness(0.9);
-      transition: transform .4s var(--ease-out)
-    }
-
-    .uc-card:hover .uc-img img {
-      transform: scale(1.04)
-    }
-
-    .uc-body {
-      padding: 24px
-    }
-
-    .uc-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-      background: var(--uci-bg, rgba(27, 94, 247, 0.08))
-    }
-
-    .uc-body h3 {
-      font-family: var(--f-display);
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--c-navy);
-      margin-bottom: 8px
-    }
-
-    .uc-body p {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--c-gray-3)
-    }
-
-    /* ── TEAM ─────────────────────────────────────────────────── */
-    .team {
-      background: #fff
-    }
-
-    .team-intro {
-      max-width: 640px;
-      margin: 0 auto;
-      text-align: center;
-      margin-bottom: 64px
-    }
-
-    .team-intro p {
-      margin-top: 16px;
-      font-size: 1.05rem;
-      line-height: 1.7;
-      color: var(--c-gray-3)
-    }
-
-    .team-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px
-    }
-
-    .team-card {
-      padding: 32px 28px;
-      border: 1px solid var(--c-gray-1);
-      border-radius: var(--r-xl);
-      text-align: left;
-      transition: border-color .25s, box-shadow .25s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .team-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--g-card);
-      opacity: 0;
-      transition: opacity .25s;
-      pointer-events: none;
-    }
-
-    .team-card:hover {
-      border-color: rgba(27, 94, 247, 0.2);
-      box-shadow: 0 8px 40px rgba(27, 94, 247, 0.08)
-    }
-
-    .team-card:hover::after {
-      opacity: 1
-    }
-
-    .team-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      margin-bottom: 20px;
-      object-fit: cover;
-      border: 2px solid var(--c-gray-1);
-    }
-
-    .team-avatar-placeholder {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--f-display);
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 20px;
-      flex-shrink: 0;
-    }
-
-    .team-role-tag {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--c-blue);
-      background: rgba(27, 94, 247, 0.08);
-      padding: 3px 10px;
-      border-radius: var(--r-pill);
-      margin-bottom: 10px;
-    }
-
-    .team-card h3 {
-      font-family: var(--f-display);
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--c-navy);
-      margin-bottom: 4px
-    }
-
-    .team-roll {
-      font-size: 0.75rem;
-      color: var(--c-gray-2);
-      font-weight: 500;
-      margin-bottom: 10px;
-      font-family: 'Inter', monospace
-    }
-
-    .team-card p {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--c-gray-3);
-      margin-bottom: 20px
-    }
-
-    .team-contribs {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-bottom: 20px
-    }
-
-    .tc-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 7px;
-      font-size: 0.78rem;
-      color: var(--c-gray-3);
-      line-height: 1.5
-    }
-
-    .tc-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--c-blue);
-      margin-top: 6px;
-      flex-shrink: 0
-    }
-
-    .team-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--c-blue);
-      transition: gap .2s;
-    }
-
-    .team-link:hover {
-      gap: 10px
-    }
-
-    .team-link svg {
-      transition: transform .2s
-    }
-
-    .team-link:hover svg {
-      transform: translateX(3px)
-    }
-
-    /* ── CTA ─────────────────────────────────────────────────── */
-    .cta-section {
-      background: var(--c-navy);
-      padding: 100px 0;
-      position: relative;
-      overflow: hidden;
-      text-align: center;
-    }
-
-    .cta-section::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 70% 80% at 30% 50%, rgba(27, 94, 247, 0.2) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 70% at 75% 40%, rgba(124, 63, 228, 0.18) 0%, transparent 60%);
-    }
-
-    .cta-inner {
-      position: relative;
-      z-index: 1;
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 0 24px
-    }
-
-    .cta-inner h2 {
-      color: #fff;
-      margin-bottom: 16px
-    }
-
-    .cta-inner p {
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 1.05rem;
-      margin-bottom: 40px
-    }
-
-    .cta-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap
-    }
-
-    .btn-white {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--c-navy);
-      padding: 14px 28px;
-      border-radius: var(--r-pill);
-      background: #fff;
-      transition: opacity .2s;
-    }
-
-    .btn-white:hover {
-      opacity: 0.9
-    }
-
-    .btn-outline-white {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
-      padding: 14px 24px;
-      border-radius: var(--r-pill);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all .2s;
-    }
-
-    .btn-outline-white:hover {
-      background: rgba(255, 255, 255, 0.07);
-      color: #fff
-    }
-
-    /* ── FOOTER ──────────────────────────────────────────────── */
-    .footer {
-      background: #040810;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 60px 0 32px
-    }
-
-    .footer-top {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 48px;
-      margin-bottom: 48px
-    }
-
-    .footer-brand {}
-
-    .footer-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px
-    }
-
-    .footer-logo-mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      background: var(--g-logo);
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .footer-logo-text {
-      font-family: var(--f-display);
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #fff
-    }
-
-    .footer-logo-text span {
-      color: var(--c-violet-2)
-    }
-
-    .footer-brand p {
-      font-size: 0.85rem;
-      line-height: 1.65;
-      color: rgba(255, 255, 255, 0.35);
-      max-width: 260px
-    }
-
-    .footer-col h4 {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 16px
-    }
-
-    .footer-col ul {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px
-    }
-
-    .footer-col ul li a {
-      font-size: 0.875rem;
-      color: rgba(255, 255, 255, 0.4);
-      transition: color .2s
-    }
-
-    .footer-col ul li a:hover {
-      color: rgba(255, 255, 255, 0.85)
-    }
-
-    .footer-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 16px;
-      padding-top: 28px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .footer-copy {
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.25)
-    }
-
-    .footer-socials {
-      display: flex;
-      gap: 12px
-    }
-
-    .social-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(255, 255, 255, 0.4);
-      transition: all .2s;
-    }
-
-    .social-btn:hover {
-      background: rgba(255, 255, 255, 0.07);
-      color: rgba(255, 255, 255, 0.8)
-    }
-
-    .back-to-top {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.35);
-      cursor: pointer;
-      transition: color .2s;
-      background: none;
-      border: none;
-    }
-
-    .back-to-top:hover {
-      color: rgba(255, 255, 255, 0.7)
-    }
-
-    /* ── RESPONSIVE ──────────────────────────────────────────── */
-    @media(max-width:900px) {
-
-      .nav-links,
-      .nav-cta .btn-ghost-nav {
-        display: none
-      }
-
-      .hero-inner {
-        grid-template-columns: 1fr;
-        text-align: center
-      }
-
-      .hero-sub {
-        margin: 0 auto 40px
-      }
-
-      .hero-actions {
-        justify-content: center
-      }
-
-      .hero-stats {
-        justify-content: center
-      }
-
-      .hero-visual {
-        display: none
-      }
-
-      .features-grid {
-        grid-template-columns: 1fr
-      }
-
-      .steps-grid {
-        grid-template-columns: repeat(2, 1fr)
-      }
-
-      .steps-grid::before {
-        display: none
-      }
-
-      .results-grid {
-        grid-template-columns: repeat(2, 1fr)
-      }
-
-      .uc-grid {
-        grid-template-columns: 1fr
-      }
-
-      .team-grid {
-        grid-template-columns: repeat(2, 1fr)
-      }
-
-      .footer-top {
-        grid-template-columns: 1fr 1fr
-      }
-    }
-
-    @media(max-width:600px) {
-      .team-grid {
-        grid-template-columns: 1fr
-      }
-
-      .results-grid {
-        grid-template-columns: 1fr
-      }
-
-      .findings-grid {
-        grid-template-columns: 1fr
-      }
-
-      .steps-grid {
-        grid-template-columns: 1fr
-      }
-
-      .footer-top {
-        grid-template-columns: 1fr
-      }
-    }
-
-    @media(prefers-reduced-motion:reduce) {
-      * {
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important
-      }
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DeepShield — Multi-Modal Deepfake Detection</title>
+<meta name="description" content="DeepShield M3-ID. Face, voice, and linguistic deepfake detection fused into one verdict."/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;font-size:16px}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+
+/* ── TOKENS ─────────────────────────────────────────────── */
+:root{
+  --bg:    #ffffff;
+  --bg2:   #f9f9f9;
+  --bg3:   #f3f3f3;
+  --ink:   #0a0a0a;
+  --ink2:  #3a3a3a;
+  --ink3:  #888888;
+  --line:  rgba(0,0,0,0.08);
+  --line2: rgba(0,0,0,0.14);
+  --r:     10px;
+  --r2:    16px;
+  --r3:    24px;
+  --ff:    'Inter', system-ui, sans-serif;
+  --fs:    'Instrument Serif', Georgia, serif;
+  --ease:  cubic-bezier(.16,1,.3,1);
+}
+[data-t=dark]{
+  --bg:#0a0a0a; --bg2:#111111; --bg3:#181818;
+  --ink:#f5f5f5; --ink2:#c0c0c0; --ink3:#666666;
+  --line:rgba(255,255,255,0.08); --line2:rgba(255,255,255,0.14);
+}
+[data-t=warm]{
+  --bg:#faf8f4; --bg2:#f3f0ea; --bg3:#ece8df;
+  --ink:#1a1510; --ink2:#4a3f30; --ink3:#9a8a75;
+  --line:rgba(100,80,50,0.1); --line2:rgba(100,80,50,0.18);
+}
+
+/* ── DARK MODE SPECIFIC OVERRIDES ─── */
+[data-t=dark] .how-section{background:#000000}
+[data-t=dark] .scan-card{background:#111111;border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .status-badge{background:#0a0a0a;border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .verdict{background:#0a0a0a;border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .verdict-main{color:#fca5a5}
+[data-t=dark] .verdict-icon{border-color:rgba(252,165,165,0.5)}
+[data-t=dark] .feat-grid{background:rgba(255,255,255,0.06)}
+[data-t=dark] .feat{background:#0a0a0a}
+[data-t=dark] .feat:hover{background:#111111}
+[data-t=dark] .feat-icon{border-color:rgba(255,255,255,0.08);background:#111111}
+[data-t=dark] .chip{border-color:rgba(255,255,255,0.08);color:#666666}
+[data-t=dark] .res-card{background:#0a0a0a;border-color:rgba(255,255,255,0.08)}
+[data-t=dark] .res-card::before{background:rgba(255,255,255,0.15)}
+[data-t=dark] .finding{background:#0a0a0a;border-color:rgba(255,255,255,0.08)}
+[data-t=dark] .fdot{background:rgba(255,255,255,0.4)}
+[data-t=dark] .uc-card{background:#0a0a0a;border-color:rgba(255,255,255,0.08)}
+[data-t=dark] .uc-img img{filter:grayscale(100%) brightness(.5)}
+[data-t=dark] .uc-card:hover .uc-img img{filter:grayscale(70%) brightness(.6)}
+[data-t=dark] .t-card{background:#0a0a0a;border-color:rgba(255,255,255,0.08)}
+[data-t=dark] .t-card:hover{background:#111111;border-color:rgba(255,255,255,0.14)}
+[data-t=dark] .t-av{background:#181818;border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .t-card.super{background:#111111;border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .t-card.super .t-av{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.1)}
+[data-t=dark] .t-menu{background:#0a0a0a;border-color:rgba(255,255,255,0.1);box-shadow:0 8px 32px rgba(0,0,0,0.6)}
+[data-t=dark] .t-opt:hover{background:#181818}
+[data-t=dark] .t-wrap .t-pill{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.5)}
+[data-t=dark] .t-wrap .t-pill:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+[data-t=dark] .btn-line{border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.5)}
+[data-t=dark] .btn-line:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+[data-t=dark] .btn-solid{background:#f5f5f5;color:#0a0a0a}
+[data-t=dark] .hero-stats{border-top-color:rgba(255,255,255,0.08)}
+[data-t=dark] .hstat{border-right-color:rgba(255,255,255,0.08)}
+[data-t=dark] .hero-meta-dot{background:rgba(255,255,255,0.5)}
+[data-t=dark] .face-center{background:#f5f5f5}
+[data-t=dark] .face-center svg{stroke:#0a0a0a}
+[data-t=dark] .soc{border-color:rgba(255,255,255,0.08);color:rgba(255,255,255,0.3)}
+[data-t=dark] .soc:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+[data-t=dark] .cta-section{border-top-color:rgba(255,255,255,0.08)}
+[data-t=dark] .btn-cta-p{background:#f5f5f5;color:#0a0a0a}
+[data-t=dark] .btn-cta-g{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.6)}
+[data-t=dark] .btn-cta-g:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+[data-t=dark] .btn-hero-p{background:#f5f5f5;color:#0a0a0a}
+[data-t=dark] .btn-hero-g{border-color:rgba(255,255,255,0.12);color:rgba(255,255,255,0.5)}
+[data-t=dark] .btn-hero-g:hover{border-color:rgba(255,255,255,0.3);color:#fff}
+[data-t=dark] .sec-label-line{background:rgba(255,255,255,0.2)}
+[data-t=dark] .m-dot{background:rgba(255,255,255,0.08)}
+[data-t=dark] .ring{border-color:rgba(255,255,255,0.08)}
+[data-t=dark] .beam{background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)}
+[data-t=dark] .conn-fill{background:rgba(255,255,255,0.5)}
+[data-t=dark] .step-num-wrap{border-color:rgba(255,255,255,0.1);background:rgba(255,255,255,0.03)}
+[data-t=dark] .step:hover .step-num-wrap,[data-t=dark] .step.on .step-num-wrap{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.3)}
+[data-t=dark] footer{border-top-color:rgba(255,255,255,0.06)}
+[data-t=dark] .ft-bottom{border-top-color:rgba(255,255,255,0.06)}
+[data-t=dark] .scores .srow .sfill[style*="background:var(--ink)"]{background:rgba(255,255,255,0.8)!important}
+body{font-family:var(--ff);background:var(--bg);color:var(--ink);overflow-x:hidden;transition:background .25s,color .25s}
+
+/* ── TYPE ─────────────────────────────────────────────────── */
+.t-hero{font-family:var(--fs);font-size:clamp(3.2rem,7vw,6.5rem);font-weight:400;line-height:.97;letter-spacing:-.03em;color:var(--ink)}
+.t-hero i{font-style:italic}
+.t-h2{font-family:var(--fs);font-size:clamp(2rem,4vw,3.4rem);font-weight:400;line-height:1.08;letter-spacing:-.02em;color:var(--ink)}
+.t-h2 i{font-style:italic}
+.t-h3{font-size:1rem;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.t-body{font-size:.9375rem;line-height:1.7;color:var(--ink2)}
+.t-small{font-size:.8125rem;line-height:1.6;color:var(--ink3)}
+.t-label{font-size:.6875rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.t-mono{font-family:'SF Mono','Fira Code',monospace;font-size:.75rem;color:var(--ink3)}
+
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+.section{padding:112px 0}
+
+/* ── NAV ──────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:68px;padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.65);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  transition:background .35s,border-color .35s,box-shadow .35s;
+  box-shadow:0 1px 0 rgba(0,0,0,0.06),0 4px 24px rgba(0,0,0,0.04);
+}
+[data-t=dark] nav{
+  background:rgba(10,10,10,0.6);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  box-shadow:0 1px 0 rgba(255,255,255,0.05),0 4px 24px rgba(0,0,0,0.3);
+}
+[data-t=warm] nav{
+  background:rgba(250,248,244,0.65);
+  border-bottom:1px solid rgba(100,80,50,0.12);
+}
+nav.stuck{
+  background:rgba(255,255,255,0.82);
+  border-color:rgba(0,0,0,0.08);
+  box-shadow:0 1px 0 rgba(0,0,0,0.06),0 8px 32px rgba(0,0,0,0.08);
+}
+[data-t=dark] nav.stuck{
+  background:rgba(8,8,8,0.85);
+  border-color:rgba(255,255,255,0.09);
+  box-shadow:0 1px 0 rgba(255,255,255,0.06),0 8px 32px rgba(0,0,0,0.5);
+}
+[data-t=warm] nav.stuck{background:rgba(250,248,244,0.88);border-color:rgba(100,80,50,0.14)}
+.nav-logo{display:flex;align-items:center;gap:9px}
+.logo-sq{
+  width:36px;height:36px;background:none;border-radius:0;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-sq svg{display:block}
+.logo-name{font-size:.9375rem;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+.logo-name sup{font-size:.55em;font-weight:400;color:var(--ink3);vertical-align:super;letter-spacing:0}
+.nav-mid{display:flex;gap:32px}
+.nav-mid a{
+  font-size:.9rem;font-weight:450;color:var(--ink2);
+  transition:color .2s;letter-spacing:-.01em;
+  position:relative;padding-bottom:2px;
+}
+.nav-mid a::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;height:1px;
+  background:var(--ink);transform:scaleX(0);transform-origin:left;
+  transition:transform .25s cubic-bezier(.16,1,.3,1);
+}
+.nav-mid a:hover{color:var(--ink)}
+.nav-mid a:hover::after{transform:scaleX(1)}
+.nav-end{display:flex;align-items:center;gap:8px}
+
+/* Theme switcher */
+.t-wrap{position:relative}
+.t-pill{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:100px;
+  border:1px solid var(--line2);background:transparent;
+  font-size:.75rem;font-weight:500;color:var(--ink2);
+  transition:border-color .15s,color .15s;
+}
+.t-pill:hover{border-color:var(--ink);color:var(--ink)}
+.t-menu{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:var(--bg);border:1px solid var(--line2);
+  border-radius:var(--r2);padding:5px;min-width:140px;
+  display:none;z-index:200;
+  box-shadow:0 8px 32px rgba(0,0,0,.12);
+}
+.t-menu.open{display:block}
+.t-opt{
+  display:flex;align-items:center;gap:9px;width:100%;
+  padding:8px 11px;border-radius:8px;
+  font-size:.8125rem;font-weight:400;color:var(--ink2);
+  transition:background .1s,color .1s;
+}
+.t-opt:hover{background:var(--bg3);color:var(--ink)}
+.t-opt.on{color:var(--ink);font-weight:500}
+.t-swatch{width:12px;height:12px;border-radius:50%;border:1px solid var(--line2);flex-shrink:0}
+.btn-line{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:100px;
+  border:1px solid var(--line2);
+  font-size:.8125rem;font-weight:500;color:var(--ink2);
+  transition:all .15s;
+}
+.btn-line:hover{border-color:var(--ink);color:var(--ink)}
+.btn-solid{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:100px;
+  background:var(--ink);
+  font-size:.8125rem;font-weight:500;color:var(--bg);
+  transition:opacity .15s;
+}
+.btn-solid:hover{opacity:.8}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.hero{
+  padding-top:148px;padding-bottom:100px;
+  border-bottom:1px solid var(--line);
+}
+.hero-grid{display:grid;grid-template-columns:1fr 420px;gap:80px;align-items:center}
+.hero-meta{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.hero-meta-dot{width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.hero-title{margin-bottom:28px}
+.hero-sub{max-width:440px;margin-bottom:36px}
+.hero-ctas{display:flex;align-items:center;gap:10px;margin-bottom:56px}
+.btn-hero-p{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:12px 24px;border-radius:100px;
+  background:var(--ink);
+  font-size:.9375rem;font-weight:500;color:var(--bg);
+  transition:opacity .15s;
+}
+.btn-hero-p:hover{opacity:.75}
+.btn-hero-g{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:12px 20px;border-radius:100px;
+  border:1px solid var(--line2);
+  font-size:.9375rem;font-weight:400;color:var(--ink2);
+  transition:all .15s;
+}
+.btn-hero-g:hover{border-color:var(--ink);color:var(--ink)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);padding-top:32px}
+.hstat{padding-right:32px;border-right:1px solid var(--line)}
+.hstat:last-child{border-right:none;padding-right:0;padding-left:32px}
+.hstat:nth-child(2){padding:0 32px}
+.hstat-n{font-family:var(--fs);font-size:2.2rem;font-weight:400;color:var(--ink);line-height:1;margin-bottom:5px}
+.hstat-l{font-size:.78rem;color:var(--ink3);line-height:1.4}
+
+/* Scan card */
+.scan-card{
+  background:var(--bg2);
+  border:1px solid var(--line2);
+  border-radius:var(--r3);
+  padding:24px;
+  position:relative;overflow:hidden;
+}
+.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.card-top-l{display:flex;align-items:center;gap:8px}
+.card-logo-sm{width:22px;height:22px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.card-name{font-size:.8125rem;font-weight:600;color:var(--ink)}
+.status-badge{
+  display:flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:100px;
+  border:1px solid var(--line2);background:var(--bg);
+}
+.status-dot{width:5px;height:5px;border-radius:50%;background:#22c55e;animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.status-badge span{font-size:.6875rem;font-weight:500;color:var(--ink2)}
+
+/* Face viz */
+.face-viz{position:relative;height:88px;display:flex;align-items:center;justify-content:center;margin-bottom:22px}
+.ring{position:absolute;border-radius:50%;border:1px solid var(--line2);animation:rot linear infinite}
+.ring1{width:88px;height:88px;animation-duration:14s}
+.ring2{width:64px;height:64px;animation-duration:9s;animation-direction:reverse}
+.ring3{width:44px;height:44px;animation-duration:6s}
+@keyframes rot{to{transform:rotate(360deg)}}
+.face-center{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1;
+}
+.beam{
+  position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--ink3),transparent);
+  animation:beamscan 2.4s ease-in-out infinite;
+}
+@keyframes beamscan{0%{top:0;opacity:0}15%{opacity:1}85%{opacity:1}100%{top:100%;opacity:0}}
+
+/* Score bars */
+.scores{display:flex;flex-direction:column;gap:11px;margin-bottom:18px}
+.srow{display:flex;align-items:center;gap:10px}
+.slbl{font-size:.72rem;color:var(--ink3);width:88px;flex-shrink:0}
+.strack{flex:1;height:3px;background:var(--bg3);border-radius:100px;overflow:hidden}
+.sfill{height:100%;border-radius:100px}
+.spct{font-size:.72rem;font-weight:500;width:28px;text-align:right;flex-shrink:0}
+
+/* Verdict */
+.verdict{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:var(--r);
+  background:var(--bg);border:1px solid var(--line2);
+}
+.verdict-icon{
+  width:24px;height:24px;border-radius:50%;
+  border:1.5px solid #ef4444;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.verdict-main{font-size:.78rem;font-weight:600;color:#dc2626}
+.verdict-sub{font-size:.68rem;color:var(--ink3);margin-top:1px}
+
+/* ── MARQUEE ──────────────────────────────────────────────── */
+.marquee-wrap{
+  padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:var(--bg2);overflow:hidden;
+}
+.marquee-track{display:flex;gap:48px;width:max-content;animation:marquee 22s linear infinite}
+@keyframes marquee{to{transform:translateX(-50%)}}
+.marquee-item{display:flex;align-items:center;gap:10px;flex-shrink:0;white-space:nowrap}
+.marquee-item span{font-size:.8125rem;font-weight:500;color:var(--ink3)}
+.m-dot{width:4px;height:4px;border-radius:50%;background:var(--line2);flex-shrink:0}
+
+/* ── SECTIONS ─────────────────────────────────────────────── */
+.sec-label{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.sec-label-line{width:20px;height:1px;background:var(--ink3)}
+.sec-center{text-align:center;display:flex;flex-direction:column;align-items:center}
+.sec-center .sec-label{justify-content:center}
+.sec-center .sec-label-line{display:none}
+
+/* ── FEATURES ─────────────────────────────────────────────── */
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r3);overflow:hidden;margin-top:56px}
+.feat{padding:40px;background:var(--bg);transition:background .2s}
+.feat:hover{background:var(--bg2)}
+.feat-num{font-size:.6875rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:24px}
+.feat-icon{
+  width:44px;height:44px;border-radius:10px;border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+}
+.feat h3{font-size:.9375rem;font-weight:600;color:var(--ink);margin-bottom:10px;letter-spacing:-.01em}
+.feat p{font-size:.875rem;line-height:1.65;color:var(--ink3);margin-bottom:18px}
+.feat-chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font-size:.6875rem;font-weight:500;padding:3px 9px;border-radius:100px;border:1px solid var(--line2);color:var(--ink3)}
+
+/* ── HOW ──────────────────────────────────────────────────── */
+.how-section{background:#0a0a0a}
+.how-section .sec-label-line{background:rgba(255,255,255,0.3)}
+.how-section .t-label{color:rgba(255,255,255,0.4)}
+.how-section .t-h2{color:#fff}
+.steps-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:0;position:relative;margin-top:64px;
+}
+.conn-line{
+  position:absolute;top:22px;left:calc(12.5% + 22px);right:calc(12.5% + 22px);
+  height:1px;background:rgba(255,255,255,0.12);overflow:hidden;
+}
+.conn-fill{
+  height:100%;width:0;
+  background:rgba(255,255,255,0.6);
+  transition:width 1.4s var(--ease);
+}
+.conn-line.done .conn-fill{width:100%}
+.step{padding:0 20px;text-align:center;position:relative;z-index:1;cursor:pointer}
+.step-num-wrap{
+  width:44px;height:44px;border-radius:50%;
+  border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.04);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+  transition:all .3s var(--ease);
+}
+.step:hover .step-num-wrap,.step.on .step-num-wrap{
+  background:rgba(255,255,255,0.1);
+  border-color:rgba(255,255,255,0.4);
+  transform:translateY(-5px);
+  box-shadow:0 12px 32px rgba(0,0,0,0.4);
+}
+.step-n{font-size:.7rem;font-weight:600;letter-spacing:.06em;color:rgba(255,255,255,0.35);margin-bottom:8px;transition:color .3s}
+.step:hover .step-n,.step.on .step-n{color:rgba(255,255,255,0.7)}
+.step h3{font-size:.875rem;font-weight:500;color:rgba(255,255,255,0.75);margin-bottom:7px}
+.step p{font-size:.8rem;line-height:1.6;color:rgba(255,255,255,0.3)}
+
+/* ── RESULTS ──────────────────────────────────────────────── */
+.results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;margin-top:56px}
+.res-card{
+  padding:28px 22px;border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--bg);text-align:center;position:relative;overflow:hidden;
+}
+.res-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ink)}
+.res-num{font-family:var(--fs);font-size:2.6rem;font-weight:400;color:var(--ink);line-height:1;margin-bottom:5px}
+.res-lbl{font-size:.78rem;font-weight:500;color:var(--ink);margin-bottom:3px}
+.res-sub{font-size:.72rem;color:var(--ink3)}
+.findings{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.finding{
+  display:flex;gap:16px;padding:20px;
+  border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--bg);
+}
+.fdot{width:6px;height:6px;border-radius:50%;background:var(--ink);flex-shrink:0;margin-top:6px}
+.finding h4{font-size:.875rem;font-weight:500;color:var(--ink);margin-bottom:4px}
+.finding p{font-size:.8125rem;line-height:1.6;color:var(--ink3)}
+
+/* ── USE CASES ────────────────────────────────────────────── */
+.uc-section{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.uc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:56px}
+.uc-card{border-radius:var(--r2);overflow:hidden;border:1px solid var(--line);background:var(--bg);transition:box-shadow .2s,transform .2s}
+.uc-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.08)}
+.uc-img{height:160px;overflow:hidden}
+.uc-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(100%) brightness(.92);transition:all .4s var(--ease)}
+.uc-card:hover .uc-img img{filter:grayscale(80%) brightness(.95);transform:scale(1.04)}
+.uc-body{padding:20px}
+.uc-body h3{font-size:.875rem;font-weight:500;color:var(--ink);margin-bottom:6px}
+.uc-body p{font-size:.8125rem;line-height:1.6;color:var(--ink3)}
+
+/* ── TEAM ─────────────────────────────────────────────────── */
+.team-section{border-top:1px solid var(--line)}
+.team-intro{max-width:560px;margin:0 auto 56px;text-align:center}
+.team-intro p{margin-top:14px;font-size:.9375rem;line-height:1.7;color:var(--ink3)}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.t-card{
+  padding:28px;border:1px solid var(--line);border-radius:var(--r2);
+  background:var(--bg);transition:border-color .2s,background .2s;
+}
+.t-card:hover{border-color:var(--line2);background:var(--bg2)}
+.t-av{
+  width:52px;height:52px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9375rem;font-weight:500;color:var(--ink);
+  margin-bottom:16px;letter-spacing:-.02em;
+}
+.t-av img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+.t-role{
+  display:inline-block;font-size:.6875rem;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:9px;
+}
+.t-card h3{font-size:.9375rem;font-weight:500;color:var(--ink);margin-bottom:3px}
+.t-roll{font-size:.75rem;color:var(--ink3);margin-bottom:12px;font-family:'SF Mono','Fira Code',monospace}
+.t-list{display:flex;flex-direction:column;gap:5px;margin-bottom:18px}
+.tc{display:flex;gap:8px;font-size:.78rem;line-height:1.5;color:var(--ink3)}
+.tc::before{content:'—';flex-shrink:0;color:var(--line2)}
+.t-link{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:.78rem;font-weight:500;color:var(--ink3);
+  transition:color .15s;
+}
+.t-link:hover{color:var(--ink)}
+.t-link svg{transition:transform .15s}
+.t-link:hover svg{transform:translateX(2px)}
+
+/* Supervisor special */
+.t-card.super{background:var(--ink);border-color:var(--ink)}
+.t-card.super .t-av{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#fff}
+.t-card.super .t-role{color:rgba(255,255,255,.35)}
+.t-card.super h3{color:#fff}
+.t-card.super .t-roll{color:rgba(255,255,255,.3)}
+.t-card.super .tc{color:rgba(255,255,255,.35)}
+.t-card.super .tc::before{color:rgba(255,255,255,.12)}
+.t-card.super .t-link{color:rgba(255,255,255,.3)}
+
+/* ── CTA ──────────────────────────────────────────────────── */
+.cta-section{border-top:1px solid var(--line);text-align:center;padding:100px 0}
+.cta-section .t-h2{margin-bottom:16px}
+.cta-section .t-body{max-width:440px;margin:0 auto 36px}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-cta-p{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:13px 26px;border-radius:100px;
+  background:var(--ink);font-size:.9375rem;font-weight:500;color:var(--bg);
+  transition:opacity .15s;
+}
+.btn-cta-p:hover{opacity:.75}
+.btn-cta-g{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:13px 22px;border-radius:100px;
+  border:1px solid var(--line2);
+  font-size:.9375rem;font-weight:400;color:var(--ink2);
+  transition:all .15s;
+}
+.btn-cta-g:hover{border-color:var(--ink);color:var(--ink)}
+
+/* ── FOOTER ───────────────────────────────────────────────── */
+footer{border-top:1px solid var(--line);padding:48px 0 32px}
+.ft{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.ft-brand p{margin-top:12px;font-size:.8125rem;line-height:1.65;color:var(--ink3);max-width:230px}
+.ft-logo{display:flex;align-items:center;gap:8px}
+.ft-logo-sq{width:24px;height:24px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.ft-logo-n{font-size:.875rem;font-weight:600;color:var(--ink)}
+.ft-col h4{font-size:.6875rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+.ft-col a{font-size:.8125rem;color:var(--ink3);transition:color .15s}
+.ft-col a:hover{color:var(--ink)}
+.ft-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--line)}
+.ft-copy{font-size:.75rem;color:var(--ink3)}
+.btt{
+  display:flex;align-items:center;gap:5px;
+  font-size:.75rem;color:var(--ink3);
+  transition:color .15s;
+}
+.btt:hover{color:var(--ink)}
+.socs{display:flex;gap:8px}
+.soc{
+  width:30px;height:30px;border-radius:7px;
+  border:1px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink3);transition:all .15s;
+}
+.soc:hover{border-color:var(--ink);color:var(--ink)}
+
+
+/* ── WARM MODE SPECIFIC OVERRIDES ─── */
+[data-t=warm] .how-section{background:#1a1510}
+[data-t=warm] .scan-card{background:#f3f0ea;border-color:rgba(100,80,50,0.15)}
+[data-t=warm] .status-badge{background:#faf8f4;border-color:rgba(100,80,50,0.15)}
+[data-t=warm] .verdict{background:#faf8f4;border-color:rgba(100,80,50,0.15)}
+[data-t=warm] .feat-grid{background:rgba(100,80,50,0.08)}
+[data-t=warm] .feat{background:#faf8f4}
+[data-t=warm] .feat:hover{background:#f3f0ea}
+[data-t=warm] .res-card{background:#faf8f4;border-color:rgba(100,80,50,0.12)}
+[data-t=warm] .finding{background:#faf8f4;border-color:rgba(100,80,50,0.12)}
+[data-t=warm] .uc-card{background:#faf8f4;border-color:rgba(100,80,50,0.12)}
+[data-t=warm] .t-card{background:#faf8f4;border-color:rgba(100,80,50,0.12)}
+[data-t=warm] .t-card:hover{background:#f3f0ea}
+/* ── REVEAL ───────────────────────────────────────────────── */
+.r0{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s var(--ease)}
+.r0.vis{opacity:1;transform:none}
+
+
+
+
+
+/* ── GLOBAL ANIMATED BACKGROUND ──────────────────────────────── */
+#global-canvas{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:-1;
+  opacity:1;
+}
+body{position:relative}
+
+/* Noise texture overlay */
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:-1;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+  opacity:0.018;
+  pointer-events:none;
+}
+[data-t=dark] body::before{opacity:0.04}
+
+/* Section backgrounds — keep transparent to show canvas through */
+.section, .uc-section, .team-section, .cta-section{
+  background:transparent !important;
+}
+.uc-section{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+/* How It Works — always dark, solid, never transparent */
+.how-section{background:#0a0a0a !important;position:relative;z-index:1}
+[data-t=dark] .how-section{background:#000000 !important}
+[data-t=warm] .how-section{background:#1a1510 !important}
+
+/* ── RESPONSIVE ───────────────────────────────────────────── */
+@media(max-width:900px){
+  .nav-mid{display:none}
+  .hero-grid{grid-template-columns:1fr}
+  .scan-card{display:none}
+  .feat-grid{grid-template-columns:1fr}
+  .results-grid{grid-template-columns:1fr 1fr}
+  .uc-grid{grid-template-columns:1fr 1fr}
+  .team-grid{grid-template-columns:1fr 1fr}
+  .ft{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .steps-row{grid-template-columns:1fr 1fr;gap:24px 0}
+  .conn-line{display:none}
+  .uc-grid,.team-grid,.findings{grid-template-columns:1fr}
+  .results-grid{grid-template-columns:1fr}
+  .ft{grid-template-columns:1fr}
+  .t-hero{font-size:2.6rem}
+}
+
+/* ── GLASSMORPHISM CARDS — canvas shows through ──────────────── */
+.scan-card{
+  background:rgba(255,255,255,0.7)!important;
+  backdrop-filter:blur(16px) saturate(160%);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);
+  border:1px solid rgba(0,0,0,0.08)!important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.8);
+}
+[data-t=dark] .scan-card{
+  background:rgba(15,15,15,0.7)!important;
+  border:1px solid rgba(255,255,255,0.09)!important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);
+}
+[data-t=warm] .scan-card{
+  background:rgba(250,248,244,0.72)!important;
+  border:1px solid rgba(100,80,50,0.12)!important;
+}
+
+/* Feature cards */
+.feat{
+  background:rgba(255,255,255,0.65)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(0,0,0,0.07)!important;
+  box-shadow:0 2px 16px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.9);
+}
+[data-t=dark] .feat{
+  background:rgba(12,12,12,0.65)!important;
+  border:1px solid rgba(255,255,255,0.07)!important;
+  box-shadow:0 2px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.04);
+}
+[data-t=dark] .feat:hover{background:rgba(18,18,18,0.75)!important}
+[data-t=warm] .feat{background:rgba(250,248,244,0.65)!important}
+
+/* Results cards */
+.res-card{
+  background:rgba(255,255,255,0.6)!important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(0,0,0,0.07)!important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+[data-t=dark] .res-card{background:rgba(12,12,12,0.65)!important;border:1px solid rgba(255,255,255,0.07)!important}
+[data-t=warm] .res-card{background:rgba(250,248,244,0.65)!important}
+
+/* Finding cards */
+.finding{
+  background:rgba(255,255,255,0.55)!important;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(0,0,0,0.06)!important;
+}
+[data-t=dark] .finding{background:rgba(12,12,12,0.6)!important;border:1px solid rgba(255,255,255,0.07)!important}
+[data-t=warm] .finding{background:rgba(250,248,244,0.6)!important}
+
+/* Use case cards */
+.uc-card{
+  background:rgba(255,255,255,0.6)!important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(0,0,0,0.07)!important;
+  box-shadow:0 2px 16px rgba(0,0,0,0.04);
+}
+[data-t=dark] .uc-card{background:rgba(12,12,12,0.65)!important;border:1px solid rgba(255,255,255,0.08)!important}
+[data-t=warm] .uc-card{background:rgba(250,248,244,0.6)!important}
+
+/* Team cards */
+.t-card{
+  background:rgba(255,255,255,0.6)!important;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(0,0,0,0.07)!important;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.t-card:hover{background:rgba(255,255,255,0.78)!important}
+[data-t=dark] .t-card{background:rgba(12,12,12,0.65)!important;border:1px solid rgba(255,255,255,0.08)!important}
+[data-t=dark] .t-card:hover{background:rgba(20,20,20,0.78)!important}
+[data-t=warm] .t-card{background:rgba(250,248,244,0.6)!important}
+[data-t=warm] .t-card:hover{background:rgba(250,248,244,0.8)!important}
+
+/* Supervisor card — stays dark but slightly transparent */
+.t-card.super{
+  background:rgba(10,10,10,0.88)!important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.1)!important;
+}
+[data-t=dark] .t-card.super{background:rgba(5,5,5,0.88)!important}
+
+/* Status badge & verdict in scan card */
+.status-badge{background:rgba(255,255,255,0.7)!important}
+.verdict{background:rgba(255,255,255,0.6)!important}
+[data-t=dark] .status-badge{background:rgba(10,10,10,0.7)!important}
+[data-t=dark] .verdict{background:rgba(10,10,10,0.7)!important}
+
+/* Hero & marquee — let canvas through */
+.hero{background:transparent!important}
+.marquee-wrap{background:rgba(255,255,255,0.55)!important;backdrop-filter:blur(8px)}
+[data-t=dark] .marquee-wrap{background:rgba(10,10,10,0.55)!important}
+[data-t=warm] .marquee-wrap{background:rgba(250,248,244,0.55)!important}
+
+/* Footer */
+footer{background:rgba(255,255,255,0.7)!important;backdrop-filter:blur(16px)}
+[data-t=dark] footer{background:rgba(8,8,8,0.8)!important}
+[data-t=warm] footer{background:rgba(250,248,244,0.7)!important}
+
+/* Feat grid bg */
+.feat-grid{background:rgba(0,0,0,0.025)!important}
+[data-t=dark] .feat-grid{background:rgba(255,255,255,0.03)!important}
+
+</style>
 </head>
-
 <body>
 
-  <!-- ── NAV ──────────────────────────────────────────────────── -->
-  <nav class="nav" id="nav">
-    <a href="#" class="nav-logo">
-      <div class="nav-logo-mark">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" />
-        </svg>
-      </div>
-      <span class="nav-logo-text">Deep<span>Shield</span></span>
-    </a>
-    <div class="nav-links">
-      <a href="#features">Detection</a>
-      <a href="#how">How it works</a>
-      <a href="#results">Results</a>
-      <a href="#use-cases">Use cases</a>
-      <a href="#team">Team</a>
+<!-- GLOBAL ANIMATED BACKGROUND CANVAS -->
+<canvas id="global-canvas" aria-hidden="true"></canvas>
+
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <div class="logo-sq" style="width:38px;height:38px;background:none;border-radius:0;padding:0;display:flex;align-items:center;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38" width="38" height="38">
+        <defs>
+          <linearGradient id="shieldG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1a1a1a"/>
+            <stop offset="100%" stop-color="#3a3a3a"/>
+          </linearGradient>
+          <linearGradient id="scanG" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.9)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.3)"/>
+          </linearGradient>
+        </defs>
+        <!-- Shield body -->
+        <path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z"
+              fill="url(#shieldG)" rx="2"/>
+        <!-- Inner shield highlight -->
+        <path d="M19 5 L30 9 L30 20.5 Q30 28.5 19 33 Q8 28.5 8 20.5 L8 9 Z"
+              fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+        <!-- Scan line animation inside shield -->
+        <clipPath id="shieldClip">
+          <path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z"/>
+        </clipPath>
+        <g clip-path="url(#shieldClip)">
+          <!-- Horizontal scan bars -->
+          <rect x="5" y="13" width="28" height="1" fill="rgba(255,255,255,0.08)"/>
+          <rect x="5" y="19" width="28" height="1" fill="rgba(255,255,255,0.08)"/>
+          <rect x="5" y="25" width="28" height="1" fill="rgba(255,255,255,0.08)"/>
+          <!-- Eye / detection symbol -->
+          <ellipse cx="19" cy="19" rx="5" ry="3.5" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+          <circle cx="19" cy="19" r="1.8" fill="rgba(255,255,255,0.9)"/>
+          <!-- Corner brackets -->
+          <path d="M12 12 L12 15 M12 12 L15 12" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+          <path d="M26 12 L26 15 M26 12 L23 12" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+          <path d="M12 26 L12 23 M12 26 L15 26" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+          <path d="M26 26 L26 23 M26 26 L23 26" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+        </g>
+        <!-- Shield border -->
+        <path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z"
+              fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      </svg>
     </div>
-    <div class="nav-cta">
-      <a href="pages/login.html" class="btn-ghost-nav">Sign in</a>
-      <a href="pages/signup.html" class="btn-primary-nav">Get started</a>
+    <span class="logo-name">DeepShield<sup>M3-ID</sup></span>
+  </a>
+
+  <div class="nav-mid">
+    <a href="#detection">Detection</a>
+    <a href="#how">How it works</a>
+    <a href="#results">Results</a>
+    <a href="#use-cases">Use cases</a>
+    <a href="#team">Team</a>
+  </div>
+
+  <div class="nav-end">
+    <div class="t-wrap" id="tWrap">
+      <button class="t-pill" onclick="openT()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <span id="tLbl">Light</span>
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="t-menu" id="tMenu">
+        <button class="t-opt on" id="tl" onclick="setT('light')"><span class="t-swatch" style="background:#fff"></span>Light</button>
+        <button class="t-opt" id="td" onclick="setT('dark')"><span class="t-swatch" style="background:#0a0a0a"></span>Dark</button>
+        <button class="t-opt" id="tw" onclick="setT('warm')"><span class="t-swatch" style="background:#faf8f4;border-color:rgba(100,80,50,.2)"></span>Warm</button>
+        <button class="t-opt" id="ts" onclick="setT('system')"><span class="t-swatch" style="background:linear-gradient(135deg,#fff 50%,#0a0a0a 50%)"></span>System</button>
+      </div>
     </div>
-  </nav>
+    <a href="pages/login.html" class="btn-line">Sign in</a>
+    <a href="pages/signup.html" class="btn-solid">Get started</a>
+  </div>
+</nav>
 
-  <!-- ── HERO ──────────────────────────────────────────────────── -->
-  <section class="hero" id="home">
-    <div class="hero-mesh"></div>
-    <div class="hero-grid-lines"></div>
-    <div class="hero-inner">
-
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="hero-badge-dot"></span>
-          <span>B.Tech Major Project 2026-27 · PSIT Kanpur</span>
+<!-- HERO -->
+<section class="hero wrap">
+  <div class="hero-grid">
+    <div>
+      <div class="hero-meta">
+        <div class="hero-meta-dot"></div>
+        <span class="t-label">B.Tech Major Project · PSIT Kanpur · 2026-27</span>
+      </div>
+      <h1 class="t-hero hero-title">
+        Catch deepfakes<br/><i>before they</i><br/>fool anyone.
+      </h1>
+      <p class="t-body hero-sub">DeepShield fuses face analysis, voice spoof detection, and linguistic AI into one real-time verdict. Three independent pipelines. One final answer.</p>
+      <div class="hero-ctas">
+        <a href="pages/dashboard.html" class="btn-hero-p">
+          Open dashboard
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="btn-hero-g">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat">
+          <div class="hstat-n">&gt;0.95</div>
+          <div class="hstat-l">Face AUC-ROC target<br/>FaceForensics++</div>
         </div>
-        <h1 class="display-xl hero-title">
-          Detect deepfakes<br /><em>before they fool</em><br />anyone.
-        </h1>
-        <div class="hero-sub">
-          <p>DeepShield fuses face analysis, voice clone detection, and linguistic AI signals into one real-time verdict
-            — making multi-modal identity fraud nearly impossible to execute.</p>
+        <div class="hstat">
+          <div class="hstat-n">&lt;5%</div>
+          <div class="hstat-l">Voice error rate<br/>ASVspoof 2021</div>
         </div>
-        <div class="hero-actions">
-          <a href="pages/dashboard.html" class="btn-primary-hero">
-            Open dashboard
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-          <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
-            class="btn-ghost-hero">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-            View on GitHub
-          </a>
-        </div>
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="hero-stat-num">>0.95<span>×</span></div>
-            <div class="hero-stat-label">Face AUC-ROC<br />accuracy target</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num">
-              <5<span>%</span>
-            </div>
-            <div class="hero-stat-label">Voice error rate<br />on ASVspoof 2021</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num">3</div>
-            <div class="hero-stat-label">AI modules<br />fused in parallel</div>
-          </div>
+        <div class="hstat">
+          <div class="hstat-n">&lt;3s</div>
+          <div class="hstat-l">Full pipeline latency<br/>60-second video</div>
         </div>
       </div>
-
-      <!-- Scan card -->
-      <div class="hero-visual">
-        <div class="scan-card">
-          <div class="scan-card-header">
-            <div class="scan-card-title">M3-ID Live Scan</div>
-            <div class="live-pill">
-              <div class="live-dot"></div><span>Scanning</span>
-            </div>
-          </div>
-          <div class="face-ring-area">
-            <div class="face-rings">
-              <div class="ring ring-1"></div>
-              <div class="ring ring-2"></div>
-              <div class="ring ring-3"></div>
-              <div class="face-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
-                  stroke-linecap="round">
-                  <circle cx="12" cy="8" r="5" />
-                  <path d="M20 21a8 8 0 10-16 0" />
-                </svg>
-              </div>
-              <div class="scan-beam"></div>
-            </div>
-          </div>
-          <div class="score-bars">
-            <div class="score-row">
-              <span class="score-label">Face Integrity</span>
-              <div class="score-track">
-                <div class="score-fill" style="width:22%;background:#EF4444"></div>
-              </div>
-              <span class="score-pct" style="color:#EF4444">22%</span>
-            </div>
-            <div class="score-row">
-              <span class="score-label">Voice Auth.</span>
-              <div class="score-track">
-                <div class="score-fill" style="width:31%;background:#F97316"></div>
-              </div>
-              <span class="score-pct" style="color:#F97316">31%</span>
-            </div>
-            <div class="score-row">
-              <span class="score-label">Linguistic NLP</span>
-              <div class="score-track">
-                <div class="score-fill" style="width:18%;background:#EF4444"></div>
-              </div>
-              <span class="score-pct" style="color:#EF4444">18%</span>
-            </div>
-            <div class="score-row">
-              <span class="score-label">Fusion Score</span>
-              <div class="score-track">
-                <div class="score-fill" style="width:23%;background:linear-gradient(90deg,#EF4444,#7C3FE4)"></div>
-              </div>
-              <span class="score-pct" style="color:#EF4444">23%</span>
-            </div>
-          </div>
-          <div class="verdict-banner">
-            <div class="verdict-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2.5"
-                stroke-linecap="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </div>
-            <div>
-              <div class="verdict-text">CRITICAL — Deepfake Detected</div>
-              <div class="verdict-sub">Fusion score 23% · BLOCK recommended</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
-  </section>
 
-  <!-- ── TRUST BAR ──────────────────────────────────────────────── -->
-  <div class="trust-bar">
-    <div class="trust-bar-inner">
-      <div class="trust-item">
-        <div class="trust-icon" style="background:rgba(27,94,247,0.08)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2"
-            stroke-linecap="round">
-            <circle cx="12" cy="8" r="5" />
-            <path d="M20 21a8 8 0 10-16 0" />
-          </svg>
+    <!-- SCAN CARD -->
+    <div class="scan-card">
+      <div class="card-top">
+        <div class="card-top-l">
+          <div class="card-logo-sm" style="background:none;width:22px;height:22px">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="22" height="22"><defs><linearGradient id="sg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4B82FF"/><stop offset="100%" stop-color="#1B3FA8"/></linearGradient><clipPath id="sc2"><path d="M18 2 L32 7 L32 20 Q32 30 18 35 Q4 30 4 20 L4 7 Z"/></clipPath></defs><path d="M18 2 L32 7 L32 20 Q32 30 18 35 Q4 30 4 20 L4 7 Z" fill="url(#sg2)"/><g clip-path="url(#sc2)" opacity="0.9"><ellipse cx="15" cy="15" rx="5" ry="6" fill="rgba(220,230,255,0.85)"/><path d="M10 21 Q10 26 18 28 L18 13 Q15 13 13 16 Q10 18 10 21Z" fill="rgba(200,215,255,0.7)"/></g><g clip-path="url(#sc2)"><rect x="19" y="12" width="3" height="3" rx="0.5" fill="rgba(147,180,255,0.9)"/><rect x="23" y="11" width="2" height="2" rx="0.3" fill="rgba(147,180,255,0.7)"/><rect x="19" y="16" width="2.5" height="2.5" rx="0.4" fill="rgba(100,150,255,0.8)"/><rect x="22.5" y="16" width="2" height="2" rx="0.3" fill="rgba(100,150,255,0.6)"/></g><path d="M18 2 L32 7 L32 20 Q32 30 18 35 Q4 30 4 20 L4 7 Z" fill="none" stroke="rgba(100,160,255,0.4)" stroke-width="1.2"/></svg>
+          </div>
+          <span class="card-name">M3-ID Live Scan</span>
         </div>
-        <span class="trust-label">EfficientNet-B4 Face Detection</span>
+        <div class="status-badge"><div class="status-dot"></div><span>Scanning</span></div>
       </div>
-      <div class="trust-item">
-        <div class="trust-icon" style="background:rgba(124,63,228,0.08)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2"
-            stroke-linecap="round">
-            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-            <path d="M19 10v2a7 7 0 01-14 0v-2" />
-          </svg>
+      <div class="face-viz">
+        <div class="ring ring1"></div>
+        <div class="ring ring2"></div>
+        <div class="ring ring3"></div>
+        <div class="face-center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
         </div>
-        <span class="trust-label">AASIST Voice Spoofing Detection</span>
+        <div class="beam"></div>
       </div>
-      <div class="trust-item">
-        <div class="trust-icon" style="background:rgba(245,158,11,0.08)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"
-            stroke-linecap="round">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-          </svg>
+      <div class="scores">
+        <div class="srow">
+          <span class="slbl">Face integrity</span>
+          <div class="strack"><div class="sfill" style="width:22%;background:#ef4444"></div></div>
+          <span class="spct" style="color:#ef4444">22%</span>
         </div>
-        <span class="trust-label">BERT Linguistic Analysis</span>
+        <div class="srow">
+          <span class="slbl">Voice auth.</span>
+          <div class="strack"><div class="sfill" style="width:31%;background:#f97316"></div></div>
+          <span class="spct" style="color:#f97316">31%</span>
+        </div>
+        <div class="srow">
+          <span class="slbl">Linguistic NLP</span>
+          <div class="strack"><div class="sfill" style="width:18%;background:#ef4444"></div></div>
+          <span class="spct" style="color:#ef4444">18%</span>
+        </div>
+        <div class="srow">
+          <span class="slbl">Fusion score</span>
+          <div class="strack"><div class="sfill" style="width:23%;background:var(--ink)"></div></div>
+          <span class="spct" style="color:var(--ink)">23%</span>
+        </div>
       </div>
-      <div class="trust-item">
-        <div class="trust-icon" style="background:rgba(16,185,129,0.08)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
-            stroke-linecap="round">
-            <polygon
-              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
+      <div class="verdict">
+        <div class="verdict-icon">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         </div>
-        <span class="trust-label">MLP Fusion Engine with XAI</span>
-      </div>
-      <div class="trust-item">
-        <div class="trust-icon" style="background:rgba(14,165,233,0.08)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2"
-            stroke-linecap="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
+        <div>
+          <div class="verdict-main">CRITICAL — Deepfake detected</div>
+          <div class="verdict-sub">Fusion score 23% · Block recommended</div>
         </div>
-        <span class="trust-label">Real-Time WebSocket Results</span>
       </div>
     </div>
   </div>
+</section>
 
-  <!-- ── FEATURES ───────────────────────────────────────────────── -->
-  <section class="features section" id="features">
-    <div class="container">
-      <div class="section-center">
-        <div class="section-badge">Detection Modules</div>
-        <h2 class="display-lg section-heading">Three pipelines. One verdict.</h2>
-        <p class="section-sub">Each module targets a different attack surface. Together they make DeepShield
-          adversarially robust — fooling all three simultaneously is practically impossible.</p>
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <div class="marquee-item"><span>EfficientNet-B4</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>MediaPipe Face Mesh</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>AASIST Voice Detection</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>ASVspoof 2021</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>BERT-base NLP</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>HC3 Dataset</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>MLP Fusion Engine</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>XAI Evidence Panel</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>FastAPI Backend</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>WebSocket Streaming</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>Docker + NGINX</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>FaceForensics++</span><div class="m-dot"></div></div>
+    <!-- duplicate for seamless loop -->
+    <div class="marquee-item"><span>EfficientNet-B4</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>MediaPipe Face Mesh</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>AASIST Voice Detection</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>ASVspoof 2021</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>BERT-base NLP</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>HC3 Dataset</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>MLP Fusion Engine</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>XAI Evidence Panel</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>FastAPI Backend</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>WebSocket Streaming</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>Docker + NGINX</span><div class="m-dot"></div></div>
+    <div class="marquee-item"><span>FaceForensics++</span><div class="m-dot"></div></div>
+  </div>
+</div>
+
+<!-- DETECTION -->
+<section class="section" id="detection" style="background:var(--bg)">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="sec-label-line"></div>
+      <span class="t-label">Detection modules</span>
+    </div>
+    <h2 class="t-h2" style="max-width:520px">Three pipelines.<br/><i>One verdict.</i></h2>
+    <div class="feat-grid">
+      <div class="feat r0">
+        <div class="feat-num">01 — Face detection</div>
+        <div class="feat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+        </div>
+        <h3>EfficientNet-B4 Visual Analysis</h3>
+        <p>MediaPipe extracts face crops from every video frame. EfficientNet-B4 — trained on FaceForensics++ and Celeb-DF-v2 — detects GAN artifacts, blending boundaries and texture anomalies. Target: AUC-ROC above 0.95.</p>
+        <div class="feat-chips"><span class="chip">EfficientNet-B4</span><span class="chip">MediaPipe</span><span class="chip">FaceForensics++</span><span class="chip">Celeb-DF-v2</span></div>
       </div>
-      <div class="features-grid">
-
-        <div class="feature-card" style="--fc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF);--fi-bg:rgba(27,94,247,0.08)">
-          <div class="feature-card-num">01 / Face Detection</div>
-          <div class="feature-icon-ring">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8"
-              stroke-linecap="round">
-              <circle cx="12" cy="8" r="5" />
-              <path d="M20 21a8 8 0 10-16 0" />
-            </svg>
-          </div>
-          <h3>EfficientNet-B4 Visual Analysis</h3>
-          <p>MediaPipe extracts face crops from every video frame. EfficientNet-B4 — trained on FaceForensics++ and
-            Celeb-DF-v2 — detects GAN artifacts, blending boundaries, and texture anomalies at AUC-ROC above 0.95.</p>
-          <div class="feature-tags">
-            <span class="ftag">EfficientNet-B4</span>
-            <span class="ftag">MediaPipe</span>
-            <span class="ftag">FaceForensics++</span>
-            <span class="ftag">Celeb-DF-v2</span>
-          </div>
+      <div class="feat r0">
+        <div class="feat-num">02 — Voice analysis</div>
+        <div class="feat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/></svg>
         </div>
-
-        <div class="feature-card"
-          style="--fc-grad:linear-gradient(90deg,#10B981,#34D399);--fi-bg:rgba(16,185,129,0.08)">
-          <div class="feature-card-num">02 / Voice Analysis</div>
-          <div class="feature-icon-ring">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8"
-              stroke-linecap="round">
-              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-              <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
-            </svg>
-          </div>
-          <h3>AASIST Voice Spoof Detection</h3>
-          <p>Log-Mel spectrograms and MFCCs feed the AASIST graph attention network fine-tuned on ASVspoof 2021. Detects
-            TTS synthesis, voice conversion, and neural vocoder artifacts with EER below 5%.</p>
-          <div class="feature-tags">
-            <span class="ftag">AASIST</span>
-            <span class="ftag">ASVspoof 2021</span>
-            <span class="ftag">MFCC</span>
-            <span class="ftag">CNN-LSTM</span>
-          </div>
+        <h3>AASIST Voice Spoof Detection</h3>
+        <p>Log-Mel spectrograms and MFCCs feed an AASIST graph attention network fine-tuned on ASVspoof 2021. Detects TTS synthesis, voice conversion and neural vocoder artifacts. Target: EER below 5%.</p>
+        <div class="feat-chips"><span class="chip">AASIST</span><span class="chip">ASVspoof 2021</span><span class="chip">MFCC</span><span class="chip">CNN-LSTM</span></div>
+      </div>
+      <div class="feat r0">
+        <div class="feat-num">03 — Linguistic NLP</div>
+        <div class="feat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         </div>
-
-        <div class="feature-card"
-          style="--fc-grad:linear-gradient(90deg,#F59E0B,#FCD34D);--fi-bg:rgba(245,158,11,0.08)">
-          <div class="feature-card-num">03 / Linguistic NLP</div>
-          <div class="feature-icon-ring">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8"
-              stroke-linecap="round">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-          </div>
-          <h3>BERT Linguistic Pattern Analysis</h3>
-          <p>BERT fine-tuned on HC3 (37,175 QA pairs) classifies AI-generated versus human text. Statistical fallback
-            measures filler density, bigram entropy, and AI marker phrase detection — works fully offline.</p>
-          <div class="feature-tags">
-            <span class="ftag">BERT</span>
-            <span class="ftag">HC3 Dataset</span>
-            <span class="ftag">Bigram Entropy</span>
-            <span class="ftag">TF-IDF</span>
-          </div>
+        <h3>BERT Linguistic Pattern Analysis</h3>
+        <p>BERT fine-tuned on HC3 (37,175 QA pairs) classifies AI-generated vs human text. Statistical fallback measures filler density, bigram entropy and AI phrase markers — works completely offline.</p>
+        <div class="feat-chips"><span class="chip">BERT</span><span class="chip">HC3 Dataset</span><span class="chip">Bigram Entropy</span><span class="chip">TF-IDF</span></div>
+      </div>
+      <div class="feat r0">
+        <div class="feat-num">04 — Risk fusion</div>
+        <div class="feat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         </div>
-
-        <div class="feature-card"
-          style="--fc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF);--fi-bg:rgba(124,63,228,0.08)">
-          <div class="feature-card-num">04 / Risk Fusion</div>
-          <div class="feature-icon-ring">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8"
-              stroke-linecap="round">
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-          </div>
-          <h3>MLP Fusion Engine with XAI</h3>
-          <p>A trained MLP combines Face (35%), Voice (35%), NLP (30%) with anomaly boosting. Returns a calibrated
-            authenticity probability, confidence intervals, alert severity, and plain-English XAI evidence bullets.</p>
-          <div class="feature-tags">
-            <span class="ftag">MLP Fusion</span>
-            <span class="ftag">XAI Evidence</span>
-            <span class="ftag">Confidence Intervals</span>
-            <span class="ftag">WebSocket</span>
-          </div>
-        </div>
-
+        <h3>MLP Fusion Engine with XAI</h3>
+        <p>A trained MLP combines Face (35%), Voice (35%) and NLP (30%) with anomaly boosting. Returns a calibrated score, confidence interval, alert severity and plain-English XAI evidence bullets via WebSocket.</p>
+        <div class="feat-chips"><span class="chip">MLP Fusion</span><span class="chip">XAI Evidence</span><span class="chip">CI ±8%</span><span class="chip">WebSocket</span></div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── HOW IT WORKS ───────────────────────────────────────────── -->
-  <section class="how section" id="how">
-    <div class="container">
-      <div class="section-center">
-        <div class="section-badge">How It Works</div>
-        <h2 class="display-lg section-heading">From upload to verdict in seconds.</h2>
-        <p class="section-sub">Three AI pipelines run in parallel the moment a file is uploaded. Results stream live to
-          your screen via WebSocket.</p>
+<!-- HOW IT WORKS -->
+<section class="how-section section" id="how">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="sec-label-line"></div>
+      <span class="t-label">How it works</span>
+    </div>
+    <h2 class="t-h2">From upload<br/>to verdict <i>in seconds.</i></h2>
+    <div class="steps-row" id="stepsRow">
+      <div class="conn-line" id="connLine"><div class="conn-fill" id="connFill"></div></div>
+      <div class="step r0" onclick="stepClick(this,0)">
+        <div class="step-num-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="step-n">Step 01</div>
+        <h3>Upload media</h3>
+        <p>Drop a video, audio file or paste text. Any format up to 500 MB.</p>
       </div>
-      <div class="steps-grid">
-
-        <div class="step">
-          <div class="step-num-circle">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="1.8"
-              stroke-linecap="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-          </div>
-          <div class="step-num">STEP 01</div>
-          <h3>Upload Media</h3>
-          <p>Drop a video, audio file, or paste text. Drag-and-drop supported. Any file type up to 500 MB.</p>
+      <div class="step r0" onclick="stepClick(this,1)">
+        <div class="step-num-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
         </div>
-
-        <div class="step">
-          <div class="step-num-circle">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.8"
-              stroke-linecap="round">
-              <circle cx="12" cy="12" r="3" />
-              <path
-                d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-            </svg>
-          </div>
-          <div class="step-num">STEP 02</div>
-          <h3>3 Modules Run</h3>
-          <p>Face, Voice, and NLP pipelines process simultaneously. Each gives an independent confidence score.</p>
+        <div class="step-n">Step 02</div>
+        <h3>3 modules run</h3>
+        <p>Face, Voice and NLP pipelines process simultaneously and independently.</p>
+      </div>
+      <div class="step r0" onclick="stepClick(this,2)">
+        <div class="step-num-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         </div>
-
-        <div class="step">
-          <div class="step-num-circle">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8"
-              stroke-linecap="round">
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4" />
-              <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-          </div>
-          <div class="step-num">STEP 03</div>
-          <h3>MLP Fusion</h3>
-          <p>Weighted scores fused with anomaly boosting. Confidence interval computed based on module agreement.</p>
+        <div class="step-n">Step 03</div>
+        <h3>MLP fusion</h3>
+        <p>Weighted scores fused with anomaly boosting. Confidence interval computed.</p>
+      </div>
+      <div class="step r0" onclick="stepClick(this,3)">
+        <div class="step-num-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
-
-        <div class="step">
-          <div class="step-num-circle">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="1.8"
-              stroke-linecap="round">
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
-          <div class="step-num">STEP 04</div>
-          <h3>Verdict + XAI</h3>
-          <p>Calibrated score, severity alert (CRITICAL to CLEAR), XAI evidence bullets, and recommended action — all
-            streamed live.</p>
-        </div>
-
+        <div class="step-n">Step 04</div>
+        <h3>Verdict + XAI</h3>
+        <p>Calibrated score, severity level and evidence bullets — streamed live.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── RESULTS ────────────────────────────────────────────────── -->
-  <section class="results section" id="results">
-    <div class="container">
-      <div class="section-center">
-        <div class="section-badge">Performance</div>
-        <h2 class="display-lg section-heading">Results and targets.</h2>
-        <p class="section-sub">Each module is evaluated against industry-standard benchmarks used by academic
-          researchers worldwide.</p>
+<!-- RESULTS -->
+<section class="section" id="results" style="background:var(--bg)">
+  <div class="wrap">
+    <div class="sec-center">
+      <div class="sec-label"><span class="t-label">Performance</span></div>
+      <h2 class="t-h2">Targets and <i>findings.</i></h2>
+    </div>
+    <div class="results-grid">
+      <div class="res-card r0"><div class="res-num">&gt;0.95</div><div class="res-lbl">AUC-ROC</div><div class="res-sub">Face · FaceForensics++ c23</div></div>
+      <div class="res-card r0"><div class="res-num">&lt;5%</div><div class="res-lbl">Equal error rate</div><div class="res-sub">Voice · ASVspoof 2021 LA</div></div>
+      <div class="res-card r0"><div class="res-num">&gt;90%</div><div class="res-lbl">Accuracy</div><div class="res-sub">NLP · HC3 test split</div></div>
+      <div class="res-card r0"><div class="res-num">&lt;3s</div><div class="res-lbl">Full latency</div><div class="res-sub">All modules · 60s videos</div></div>
+    </div>
+    <div class="findings">
+      <div class="finding r0"><div class="fdot"></div><div><h4>Adversarially robust by design</h4><p>A criminal must fool three completely independent AI systems simultaneously — exponentially harder than bypassing any single-modality detector.</p></div></div>
+      <div class="finding r0"><div class="fdot"></div><div><h4>Offline fallback always works</h4><p>All three modules include statistical heuristics that produce valid results without any trained model weights — the demo runs anywhere, zero dependencies.</p></div></div>
+      <div class="finding r0"><div class="fdot"></div><div><h4>Live WebSocket streaming</h4><p>Results appear on screen as each module completes — face score, then voice, then NLP, then fusion — all without a single page refresh.</p></div></div>
+      <div class="finding r0"><div class="fdot"></div><div><h4>Every decision is explainable</h4><p>XAI evidence bullets explain each detection in plain English — which module flagged it, what triggered the flag, and what action to take.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="uc-section section" id="use-cases">
+  <div class="wrap">
+    <div class="sec-label">
+      <div class="sec-label-line"></div>
+      <span class="t-label">Use cases</span>
+    </div>
+    <h2 class="t-h2" style="max-width:480px">Built for fraud<br/>that <i>cannot be allowed.</i></h2>
+    <div class="uc-grid">
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&auto=format&fit=crop&q=70" alt="Banking KYC" loading="lazy"/></div>
+        <div class="uc-body"><h3>Banking KYC verification</h3><p>Detect deepfake impersonation in video KYC calls before any account is opened or funds are transferred.</p></div>
       </div>
-
-      <div class="results-grid">
-        <div class="metric-card" style="--mc-color:#1B5EF7;--mc-grad:linear-gradient(90deg,#1B5EF7,#4B82FF)">
-          <div class="metric-num">&gt;0.95</div>
-          <div class="metric-label">AUC-ROC</div>
-          <div class="metric-sub">Face Module · FaceForensics++ c23</div>
-        </div>
-        <div class="metric-card" style="--mc-color:#10B981;--mc-grad:linear-gradient(90deg,#10B981,#34D399)">
-          <div class="metric-num">&lt;5%</div>
-          <div class="metric-label">Equal Error Rate</div>
-          <div class="metric-sub">Voice Module · ASVspoof 2021 LA</div>
-        </div>
-        <div class="metric-card" style="--mc-color:#F59E0B;--mc-grad:linear-gradient(90deg,#F59E0B,#FCD34D)">
-          <div class="metric-num">&gt;90%</div>
-          <div class="metric-label">Accuracy</div>
-          <div class="metric-sub">NLP Module · HC3 test split</div>
-        </div>
-        <div class="metric-card" style="--mc-color:#7C3FE4;--mc-grad:linear-gradient(90deg,#7C3FE4,#9F6EFF)">
-          <div class="metric-num">&lt;3s</div>
-          <div class="metric-label">Full Latency</div>
-          <div class="metric-sub">All modules · Videos up to 60s</div>
-        </div>
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=70" alt="Legal Evidence" loading="lazy"/></div>
+        <div class="uc-body"><h3>Legal evidence integrity</h3><p>Verify whether video or audio submitted as courtroom evidence has been manipulated or AI-synthesised.</p></div>
       </div>
-
-      <div class="findings-grid">
-        <div class="finding" style="--fd-color:#1B5EF7">
-          <div class="finding-dot"></div>
-          <div>
-            <h4>Adversarially robust by design</h4>
-            <p>A criminal must fool three completely independent AI systems simultaneously — exponentially harder than
-              bypassing any single-modality detector.</p>
-          </div>
-        </div>
-        <div class="finding" style="--fd-color:#10B981">
-          <div class="finding-dot"></div>
-          <div>
-            <h4>Offline fallback always works</h4>
-            <p>All three modules include statistical heuristics that produce valid results without any trained model
-              weights — the demo runs anywhere.</p>
-          </div>
-        </div>
-        <div class="finding" style="--fd-color:#F59E0B">
-          <div class="finding-dot"></div>
-          <div>
-            <h4>Live WebSocket streaming</h4>
-            <p>Results appear on screen as each module completes — face score first, then voice, then NLP, then fusion —
-              all without a page refresh.</p>
-          </div>
-        </div>
-        <div class="finding" style="--fd-color:#7C3FE4">
-          <div class="finding-dot"></div>
-          <div>
-            <h4>Every decision is explainable</h4>
-            <p>XAI evidence bullets explain each detection in plain English — which module flagged it, what triggered
-              the flag, and what action to take.</p>
-          </div>
-        </div>
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop&q=70" alt="CEO Fraud" loading="lazy"/></div>
+        <div class="uc-body"><h3>CEO fraud prevention</h3><p>Stop voice clone scams on finance teams — the same attack that cost one company $25 million in a single call.</p></div>
+      </div>
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=70" alt="Media" loading="lazy"/></div>
+        <div class="uc-body"><h3>Media integrity</h3><p>Verify news footage and political speeches before publication. Flag AI-generated clips that could spread as real reportage.</p></div>
+      </div>
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=70" alt="Healthcare" loading="lazy"/></div>
+        <div class="uc-body"><h3>Telemedicine security</h3><p>Ensure remote patient consultations involve real verified people — not deepfake proxies accessing sensitive records.</p></div>
+      </div>
+      <div class="uc-card r0">
+        <div class="uc-img"><img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=70" alt="Enterprise" loading="lazy"/></div>
+        <div class="uc-body"><h3>Enterprise security</h3><p>Protect board meetings from criminals who impersonate executives using AI voice and face clones to authorise transactions.</p></div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── USE CASES ──────────────────────────────────────────────── -->
-  <section class="use-cases section" id="use-cases">
-    <div class="container">
-      <div class="section-center">
-        <div class="section-badge">Use Cases</div>
-        <h2 class="display-lg section-heading">Built for identity fraud that can't be allowed.</h2>
-        <p class="section-sub">Wherever a deepfake video call, cloned voice, or AI-written script could cause real harm,
-          DeepShield catches it.</p>
+<!-- TEAM -->
+<section class="team-section section" id="team" style="background:var(--bg)">
+  <div class="wrap">
+    <div class="team-intro">
+      <div class="sec-label" style="justify-content:center;margin-bottom:16px"><span class="t-label">Meet the team</span></div>
+      <h2 class="t-h2">Built by<br/><i>passionate engineers.</i></h2>
+      <p>DeepShield M3-ID is a B.Tech Major Project by five engineers from PSIT Kanpur — combining deep learning, cybersecurity and full-stack development into one cohesive system.</p>
+    </div>
+    <div class="team-grid">
+      <div class="t-card r0">
+        <div class="t-av">GK</div>
+        <span class="t-role">Face detection</span>
+        <h3>Gauresh Kumar Chaubey</h3>
+        <div class="t-roll">2301641720045</div>
+        <div class="t-list">
+          <div class="tc">EfficientNet-B4 training on FaceForensics++ and Celeb-DF-v2</div>
+          <div class="tc">MediaPipe face extraction — 468 landmarks per frame</div>
+          <div class="tc">Temporal frame aggregation into video-level score</div>
+          <div class="tc">OpenCV heuristic fallback for offline mode</div>
+        </div>
+        <a href="https://github.com/Gauresh83" target="_blank" class="t-link">View profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
       </div>
-      <div class="uc-grid">
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&auto=format&fit=crop&q=70"
-              alt="Banking KYC" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(27,94,247,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5EF7" stroke-width="2"
-                stroke-linecap="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0110 0v4" />
-              </svg>
-            </div>
-            <h3>Banking KYC Verification</h3>
-            <p>Detect if the person on a video KYC call is a real human or an AI-generated deepfake impersonating a
-              customer — before any account is opened.</p>
-          </div>
+      <div class="t-card r0">
+        <div class="t-av">ID</div>
+        <span class="t-role">Voice analysis</span>
+        <h3>Ish Dubey</h3>
+        <div class="t-roll">2301641720052</div>
+        <div class="t-list">
+          <div class="tc">AASIST fine-tuning on ASVspoof 2021 LA partition</div>
+          <div class="tc">Log-Mel spectrogram and MFCC extraction pipeline</div>
+          <div class="tc">Bidirectional CNN-LSTM architecture design</div>
+          <div class="tc">Librosa heuristic fallback for zero-dependency audio</div>
         </div>
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=70"
-              alt="Legal Evidence" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(124,63,228,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3FE4" stroke-width="2"
-                stroke-linecap="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-            </div>
-            <h3>Legal Evidence Integrity</h3>
-            <p>Verify whether a video or audio recording submitted as evidence in legal proceedings has been manipulated
-              or synthesised using AI tools.</p>
-          </div>
+        <a href="https://github.com/Ish1203" target="_blank" class="t-link">View profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+      <div class="t-card r0">
+        <div class="t-av">AT</div>
+        <span class="t-role">Fusion &amp; XAI</span>
+        <h3>Aryan Tiwari</h3>
+        <div class="t-roll">2301641720030</div>
+        <div class="t-list">
+          <div class="tc">MLP fusion layer — 3-input to Dense(64) to Sigmoid</div>
+          <div class="tc">SyncNet lip-sync audio-visual alignment verification</div>
+          <div class="tc">XAI evidence bullet generator in plain English</div>
         </div>
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop&q=70"
-              alt="CEO Fraud" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(239,68,68,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"
-                stroke-linecap="round">
-                <path
-                  d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.67 19.79 19.79 0 012 2.18 2 2 0 014 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-              </svg>
-            </div>
-            <h3>CEO Fraud Prevention</h3>
-            <p>Stop voice clone scams targeting finance teams. Detect synthetic executive voices on calls requesting
-              urgent wire transfers — the exact attack that cost one firm $25 million.</p>
-          </div>
+        <a href="#" class="t-link">View profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+      <div class="t-card r0">
+        <div class="t-av">JY</div>
+        <span class="t-role">Backend &amp; API</span>
+        <h3>Janhvi Yadav</h3>
+        <div class="t-roll">2301641720054</div>
+        <div class="t-list">
+          <div class="tc">FastAPI backend — 11 REST and WebSocket route groups</div>
+          <div class="tc">JWT authentication with bcrypt password hashing</div>
+          <div class="tc">Confidence interval calculation and alert severity routing</div>
+          <div class="tc">Docker deployment and GitHub Actions CI pipeline</div>
         </div>
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&auto=format&fit=crop&q=70"
-              alt="Media Integrity" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(245,158,11,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"
-                stroke-linecap="round">
-                <path d="M23 7l-7 5 7 5V7z" />
-                <rect x="1" y="5" width="15" height="14" rx="2" />
-              </svg>
-            </div>
-            <h3>Media & Journalism</h3>
-            <p>Verify news videos and politician speeches before publication. Flag AI-generated or manipulated footage
-              that could be mistaken for real reportage.</p>
-          </div>
+        <a href="#" class="t-link">View profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+      <div class="t-card r0">
+        <div class="t-av">AK</div>
+        <span class="t-role">Frontend</span>
+        <h3>Anand Kumar</h3>
+        <div class="t-roll">2301641720018</div>
+        <div class="t-list">
+          <div class="tc">10-page premium UI with 5-theme system</div>
+          <div class="tc">Chart.js dashboards — doughnut ring, XAI bars, charts</div>
+          <div class="tc">Full offline demo mode — all pages work without server</div>
+          <div class="tc">End-to-end integration testing across all 4 modules</div>
         </div>
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=70"
-              alt="Healthcare" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(16,185,129,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
-                stroke-linecap="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-            <h3>Telemedicine Security</h3>
-            <p>Ensure that remote patient consultations involve real verified individuals — not deepfake proxies
-              accessing sensitive medical records or prescriptions.</p>
-          </div>
+        <a href="#" class="t-link">View profile <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      </div>
+      <div class="t-card super r0">
+        <div class="t-av">AA</div>
+        <span class="t-role">Supervisor</span>
+        <h3>Mr. Abhishek Anand</h3>
+        <div class="t-roll">Assistant Professor</div>
+        <div class="t-list">
+          <div class="tc">Dept. of Data Science · CS-CYS-4A</div>
+          <div class="tc">Team ID: 27_CS_CYS_4A_09</div>
+          <div class="tc">Session 2026-27</div>
         </div>
-
-        <div class="uc-card">
-          <div class="uc-img">
-            <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&auto=format&fit=crop&q=70"
-              alt="Enterprise" />
-          </div>
-          <div class="uc-body">
-            <div class="uc-icon" style="--uci-bg:rgba(14,165,233,0.08)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="2"
-                stroke-linecap="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" />
-                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-              </svg>
-            </div>
-            <h3>Enterprise Security</h3>
-            <p>Protect board meetings and sensitive video calls from criminals who impersonate executives using
-              AI-generated voice and face clones to authorise fraudulent transactions.</p>
-          </div>
-        </div>
-
+        <span style="font-size:.75rem;color:rgba(255,255,255,.2)">Pranveer Singh Institute of Technology, Kanpur</span>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── TEAM ───────────────────────────────────────────────────── -->
-  <section class="team section" id="team">
-    <div class="container">
-      <div class="team-intro">
-        <div class="section-badge"
-          style="display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-blue);margin-bottom:16px">
-          Meet the Team</div>
-        <h2 class="display-lg">Built by passionate engineers.</h2>
-        <p>DeepShield M3-ID is a B.Tech Major Project by five engineers from PSIT Kanpur, combining deep learning,
-          cybersecurity, and full-stack development to build India's first student-level multi-modal deepfake detection
-          system.</p>
-      </div>
-
-      <div class="team-grid">
-
-        <!-- Gauresh -->
-        <div class="team-card">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#4B82FF)">GK</div>
-          <span class="team-role-tag">Face Detection Module</span>
-          <h3>Gauresh Kumar Chaubey</h3>
-          <div class="team-roll">Roll No. 2301641720045</div>
-          <div class="team-contribs">
-            <div class="tc-item">
-              <div class="tc-dot"></div>EfficientNet-B4 training on FaceForensics++ and Celeb-DF-v2
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot"></div>MediaPipe face extraction — 468 landmarks per frame
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot"></div>Temporal frame aggregation into video-level score
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot"></div>OpenCV heuristic fallback for offline mode
-            </div>
-          </div>
-          <a href="https://github.com/Gauresh83" target="_blank" class="team-link">
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-        </div>
-
-        <!-- Ish -->
-        <div class="team-card">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#10B981,#34D399)">ID</div>
-          <span class="team-role-tag" style="background:rgba(16,185,129,0.08);color:#10B981">Voice Analysis
-            Module</span>
-          <h3>Ish Dubey</h3>
-          <div class="team-roll">Roll No. 2301641720052</div>
-          <div class="team-contribs">
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#10B981"></div>AASIST fine-tuning on ASVspoof 2021 LA partition
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#10B981"></div>Log-Mel spectrogram (80 banks) and MFCC extraction
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#10B981"></div>Bidirectional CNN-LSTM architecture design
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#10B981"></div>Librosa heuristic fallback for zero-dependency audio
-            </div>
-          </div>
-          <a href="https://github.com/Ish1203" target="_blank" class="team-link" style="color:#10B981">
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-        </div>
-
-        <!-- Aryan -->
-        <div class="team-card">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#7C3FE4,#9F6EFF)">AT</div>
-          <span class="team-role-tag" style="background:rgba(124,63,228,0.08);color:#7C3FE4">Fusion Engine &amp;
-            XAI</span>
-          <h3>Aryan Tiwari</h3>
-          <div class="team-roll">Roll No. 2301641720030</div>
-          <div class="team-contribs">
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#7C3FE4"></div>MLP fusion layer — 3-input to Dense(64) to Sigmoid
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#7C3FE4"></div>SyncNet lip-sync audio-visual alignment verification
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#7C3FE4"></div>XAI evidence bullet generator in plain English
-            </div>
-          </div>
-          <a href="#" class="team-link" style="color:#7C3FE4">
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-        </div>
-
-        <!-- Janhvi -->
-        <div class="team-card">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#0EA5E9,#38BDF8)">JY</div>
-          <span class="team-role-tag" style="background:rgba(14,165,233,0.08);color:#0EA5E9">Backend &amp; API</span>
-          <h3>Janhvi Yadav</h3>
-          <div class="team-roll">Roll No. 2301641720054</div>
-          <div class="team-contribs">
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#0EA5E9"></div>FastAPI backend — 11 REST and WebSocket route groups
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#0EA5E9"></div>JWT authentication with bcrypt password hashing
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#0EA5E9"></div>Confidence interval calculation and alert severity
-              routing
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#0EA5E9"></div>Docker deployment and GitHub Actions CI pipeline
-            </div>
-          </div>
-          <a href="#" class="team-link" style="color:#0EA5E9">
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-        </div>
-
-        <!-- Anand -->
-        <div class="team-card">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#F59E0B,#FCD34D)">AK</div>
-          <span class="team-role-tag" style="background:rgba(245,158,11,0.08);color:#F59E0B">Frontend &amp;
-            Integration</span>
-          <h3>Anand Kumar</h3>
-          <div class="team-roll">Roll No. 2301641720018</div>
-          <div class="team-contribs">
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#F59E0B"></div>10-page premium UI with 5-theme system design
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#F59E0B"></div>Chart.js dashboards — doughnut ring, XAI bars,
-              activity charts
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#F59E0B"></div>Full offline demo mode — all pages work without the
-              server
-            </div>
-            <div class="tc-item">
-              <div class="tc-dot" style="background:#F59E0B"></div>End-to-end integration testing across all 4 modules
-            </div>
-          </div>
-          <a href="#" class="team-link" style="color:#F59E0B">
-            View Profile
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-        </div>
-
-        <!-- Supervisor card -->
-        <div class="team-card" style="background:var(--c-navy);border-color:rgba(27,94,247,0.25)">
-          <div class="team-avatar-placeholder" style="background:linear-gradient(135deg,#1B5EF7,#7C3FE4)">AA</div>
-          <span class="team-role-tag" style="background:rgba(27,94,247,0.15);color:#4B82FF">Project Supervisor</span>
-          <h3 style="color:#fff">Mr. Abhishek Anand</h3>
-          <div class="team-roll" style="color:rgba(255,255,255,0.35)">Assistant Professor, PSIT Kanpur</div>
-          <div class="team-contribs">
-            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
-              <div class="tc-dot" style="background:#4B82FF"></div>Dept. of Data Science — CS-CYS-4A
-            </div>
-            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
-              <div class="tc-dot" style="background:#4B82FF"></div>Team ID: 27_CS_CYS_4A_09
-            </div>
-            <div class="tc-item" style="color:rgba(255,255,255,0.45)">
-              <div class="tc-dot" style="background:#4B82FF"></div>Session 2026-27
-            </div>
-          </div>
-          <span style="font-size:0.8rem;color:rgba(255,255,255,0.25)">Pranveer Singh Institute of Technology</span>
-        </div>
-
-      </div>
+<!-- CTA -->
+<section class="cta-section">
+  <div class="wrap">
+    <h2 class="t-h2">Catch deepfakes<br/><i>before they cause harm.</i></h2>
+    <p class="t-body">Sign up and run your first multi-modal scan in under 60 seconds. The demo works entirely offline — no backend setup required.</p>
+    <div class="cta-btns">
+      <a href="pages/signup.html" class="btn-cta-p">Start detecting free <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+      <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="btn-cta-g"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub</a>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ── CTA ────────────────────────────────────────────────────── -->
-  <section class="cta-section">
-    <div class="cta-inner">
-      <h2 class="display-lg">Catch deepfakes before they cause harm.</h2>
-      <p>Sign up and run your first multi-modal detection scan in under 60 seconds. No setup required — the demo works
-        entirely offline.</p>
-      <div class="cta-actions">
-        <a href="pages/signup.html" class="btn-white">
-          Start detecting free
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="ft">
+      <div class="ft-brand">
+        <div class="ft-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38" width="26" height="26" style="flex-shrink:0">
+            <defs><clipPath id="scFt"><path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z"/></clipPath></defs>
+            <path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z" fill="var(--ink)"/>
+            <g clip-path="url(#scFt)">
+              <rect x="5" y="13" width="28" height="0.7" fill="rgba(255,255,255,0.09)"/>
+              <rect x="5" y="19" width="28" height="0.7" fill="rgba(255,255,255,0.09)"/>
+              <rect x="5" y="25" width="28" height="0.7" fill="rgba(255,255,255,0.09)"/>
+              <ellipse cx="19" cy="19" rx="5" ry="3.5" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"/>
+              <circle cx="19" cy="19" r="1.8" fill="rgba(255,255,255,0.9)"/>
+              <path d="M12 12 L12 15 M12 12 L15 12" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+              <path d="M26 12 L26 15 M26 12 L23 12" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+              <path d="M12 26 L12 23 M12 26 L15 26" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+              <path d="M26 26 L26 23 M26 26 L23 26" stroke="rgba(255,255,255,0.4)" stroke-width="1" stroke-linecap="round"/>
+            </g>
+            <path d="M19 2.5 L33 7.5 L33 21 Q33 31 19 36 Q5 31 5 21 L5 7.5 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
           </svg>
-        </a>
-        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
-          class="btn-outline-white">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-          </svg>
-          View on GitHub
-        </a>
+          <span class="ft-logo-n">DeepShield</span>
+        </div>
+        <p>Multi-modal deepfake detection — face, voice and linguistic analysis fused into one real-time verdict.</p>
+      </div>
+      <div class="ft-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="pages/dashboard.html">Dashboard</a></li>
+          <li><a href="pages/face.html">Face detection</a></li>
+          <li><a href="pages/voice.html">Voice analysis</a></li>
+          <li><a href="pages/nlp.html">NLP module</a></li>
+          <li><a href="pages/fusion.html">Risk fusion</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Detection</h4>
+        <ul>
+          <li><a href="#detection">EfficientNet-B4</a></li>
+          <li><a href="#detection">AASIST voice</a></li>
+          <li><a href="#detection">BERT NLP</a></li>
+          <li><a href="#detection">MLP fusion</a></li>
+          <li><a href="#detection">XAI evidence</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank">GitHub repo</a></li>
+          <li><a href="#team">Meet the team</a></li>
+          <li><a href="#results">Performance</a></li>
+          <li><a href="#use-cases">Use cases</a></li>
+          <li><a href="pages/dashboard.html">Live demo</a></li>
+        </ul>
       </div>
     </div>
-  </section>
-
-  <!-- ── FOOTER ─────────────────────────────────────────────────── -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-top">
-        <div class="footer-brand">
-          <div class="footer-logo">
-            <div class="footer-logo-mark">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"
-                stroke-linecap="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </div>
-            <span class="footer-logo-text">Deep<span>Shield</span></span>
-          </div>
-          <p>Multi-modal deepfake detection system combining face, voice, and linguistic analysis into one real-time
-            verdict.</p>
-        </div>
-        <div class="footer-col">
-          <h4>Product</h4>
-          <ul>
-            <li><a href="pages/dashboard.html">Dashboard</a></li>
-            <li><a href="pages/face.html">Face Detection</a></li>
-            <li><a href="pages/voice.html">Voice Analysis</a></li>
-            <li><a href="pages/nlp.html">NLP Module</a></li>
-            <li><a href="pages/fusion.html">Risk Fusion</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>Detection</h4>
-          <ul>
-            <li><a href="#features">EfficientNet-B4</a></li>
-            <li><a href="#features">AASIST Voice</a></li>
-            <li><a href="#features">BERT NLP</a></li>
-            <li><a href="#features">MLP Fusion</a></li>
-            <li><a href="#features">XAI Evidence</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>Project</h4>
-          <ul>
-            <li><a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank">GitHub
-                Repo</a></li>
-            <li><a href="#team">Meet the Team</a></li>
-            <li><a href="#results">Performance</a></li>
-            <li><a href="#use-cases">Use Cases</a></li>
-            <li><a href="pages/dashboard.html">Live Demo</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <div class="footer-copy">2026 DeepShield M3-ID · Team 27_CS_CYS_4A_09 · PSIT Kanpur · CS-CYS-4A</div>
-        <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
-          Back to top
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round">
-            <line x1="12" y1="19" x2="12" y2="5" />
-            <polyline points="5 12 12 5 19 12" />
-          </svg>
-        </button>
-        <div class="footer-socials">
-          <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank"
-            class="social-btn" title="GitHub">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-          </a>
-          <a href="https://github.com/Ish1203" target="_blank" class="social-btn" title="Ish GitHub">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round">
-              <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z" />
-              <rect x="2" y="9" width="4" height="12" />
-              <circle cx="4" cy="4" r="2" />
-            </svg>
-          </a>
-          <a href="mailto:2301641720045@psit.ac.in" class="social-btn" title="Email">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </a>
-        </div>
+    <div class="ft-bottom">
+      <div class="ft-copy">© 2026 DeepShield M3-ID · Team 27_CS_CYS_4A_09 · PSIT Kanpur</div>
+      <button class="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">Back to top <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
+      <div class="socs">
+        <a href="https://github.com/Gauresh83/Deep-Shield-Deepfake-Detection-System" target="_blank" class="soc"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg></a>
+        <a href="mailto:2301641720045@psit.ac.in" class="soc"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>
       </div>
     </div>
-  </footer>
+  </div>
+</footer>
 
-  <script>
-    // Nav scroll effect
-    const nav = document.getElementById('nav');
-    window.addEventListener('scroll', () => {
-      nav.classList.toggle('scrolled', window.scrollY > 30);
-    });
+<script>
+// NAV
+window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('stuck',scrollY>20));
 
-    // Smooth scroll for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        const t = document.querySelector(a.getAttribute('href'));
-        if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+// SMOOTH SCROLL
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
+  const t=document.querySelector(a.getAttribute('href'));
+  if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'})}
+}));
+
+// THEME
+const TL={light:'Light',dark:'Dark',warm:'Warm',system:'System'};
+function setT(n){
+  const r=document.documentElement;
+  r.removeAttribute('data-t');
+  if(n==='dark')r.setAttribute('data-t','dark');
+  else if(n==='warm')r.setAttribute('data-t','warm');
+  else if(n==='system')r.setAttribute('data-t',matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  document.getElementById('tLbl').textContent=TL[n];
+  ['light','dark','warm','system'].forEach(t=>{
+    const el=document.getElementById('t'+t[0]);
+    if(el)el.classList.toggle('on',t===n);
+  });
+  localStorage.setItem('dst',n);
+  document.getElementById('tMenu').classList.remove('open');
+}
+function openT(){document.getElementById('tMenu').classList.toggle('open')}
+document.addEventListener('click',e=>{if(!document.getElementById('tWrap').contains(e.target))document.getElementById('tMenu').classList.remove('open')});
+setT(localStorage.getItem('dst')||'light');
+
+// REVEAL
+const io=new IntersectionObserver(en=>en.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');io.unobserve(e.target)}}),{threshold:.08});
+document.querySelectorAll('.r0').forEach(el=>io.observe(el));
+
+// STEPS
+const sio=new IntersectionObserver(en=>en.forEach(e=>{if(e.isIntersecting){setTimeout(()=>document.getElementById('connLine').classList.add('done'),300);sio.unobserve(e.target)}}),{threshold:.3});
+const sr=document.getElementById('stepsRow');
+if(sr)sio.observe(sr);
+
+function stepClick(el,i){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+  const f=document.getElementById('connFill');
+  if(f)f.style.width=[8,41,67,100][i]+'%';
+}
+let si=0;
+const allS=document.querySelectorAll('.step');
+setInterval(()=>{
+  allS.forEach(s=>s.classList.remove('on'));
+  allS[si].classList.add('on');
+  const f=document.getElementById('connFill');
+  if(f)f.style.width=[8,41,67,100][si]+'%';
+  si=(si+1)%allS.length;
+},2400);
+// ── GLOBAL ANIMATED BACKGROUND ───────────────────────────────
+(function(){
+  const canvas = document.getElementById('global-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, nodes=[], frameId, theme='light';
+
+  function getTheme(){
+    const t = document.documentElement.getAttribute('data-t');
+    return t||'light';
+  }
+
+  function getColors(){
+    theme = getTheme();
+    if(theme==='dark') return {
+      bg1:'#0a0a0a', bg2:'#111111',
+      node:'rgba(255,255,255,0.12)',
+      line:'rgba(255,255,255,0.04)',
+      glow:'rgba(255,255,255,0.03)',
+      dot:'rgba(255,255,255,0.18)',
+    };
+    if(theme==='warm') return {
+      bg1:'#faf8f4', bg2:'#f3f0ea',
+      node:'rgba(100,80,50,0.12)',
+      line:'rgba(100,80,50,0.04)',
+      glow:'rgba(180,140,80,0.06)',
+      dot:'rgba(100,80,50,0.15)',
+    };
+    return {
+      bg1:'#ffffff', bg2:'#f7f7f7',
+      node:'rgba(0,0,0,0.08)',
+      line:'rgba(0,0,0,0.03)',
+      glow:'rgba(0,0,0,0.04)',
+      dot:'rgba(0,0,0,0.1)',
+    };
+  }
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    initNodes();
+  }
+
+  function initNodes(){
+    const count = Math.floor((W*H)/22000);
+    nodes = [];
+    for(let i=0;i<count;i++){
+      nodes.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        vx:(Math.random()-.5)*0.28,
+        vy:(Math.random()-.5)*0.28,
+        r: Math.random()*1.5+0.4,
+        pulse: Math.random()*Math.PI*2,
+        pulseSpeed: 0.008+Math.random()*0.012,
       });
-    });
+    }
+  }
 
-    // Reveal on scroll
-    const revealEls = document.querySelectorAll(
-      '.feature-card, .step, .metric-card, .finding, .uc-card, .team-card'
-    );
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.style.opacity = '1';
-          e.target.style.transform = 'translateY(0)';
-          io.unobserve(e.target);
+  function drawBg(c){
+    // Gradient background
+    const grad = ctx.createLinearGradient(0,0,W,H);
+    if(theme==='dark'){
+      grad.addColorStop(0,'#0c0c0c');
+      grad.addColorStop(0.5,'#080808');
+      grad.addColorStop(1,'#0e0e0e');
+    } else if(theme==='warm'){
+      grad.addColorStop(0,'#faf8f4');
+      grad.addColorStop(0.5,'#f5f2ec');
+      grad.addColorStop(1,'#f0ece3');
+    } else {
+      grad.addColorStop(0,'#ffffff');
+      grad.addColorStop(0.5,'#fafafa');
+      grad.addColorStop(1,'#f5f5f5');
+    }
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,W,H);
+
+    // Radial glow accent — top right
+    const rg1 = ctx.createRadialGradient(W*0.85,H*0.15,0,W*0.85,H*0.15,W*0.45);
+    if(theme==='dark'){
+      rg1.addColorStop(0,'rgba(255,255,255,0.025)');
+      rg1.addColorStop(1,'transparent');
+    } else if(theme==='warm'){
+      rg1.addColorStop(0,'rgba(180,140,80,0.06)');
+      rg1.addColorStop(1,'transparent');
+    } else {
+      rg1.addColorStop(0,'rgba(0,0,0,0.025)');
+      rg1.addColorStop(1,'transparent');
+    }
+    ctx.fillStyle=rg1;
+    ctx.fillRect(0,0,W,H);
+
+    // Radial glow accent — bottom left
+    const rg2 = ctx.createRadialGradient(W*0.1,H*0.85,0,W*0.1,H*0.85,W*0.4);
+    if(theme==='dark'){
+      rg2.addColorStop(0,'rgba(255,255,255,0.015)');
+      rg2.addColorStop(1,'transparent');
+    } else if(theme==='warm'){
+      rg2.addColorStop(0,'rgba(100,80,50,0.04)');
+      rg2.addColorStop(1,'transparent');
+    } else {
+      rg2.addColorStop(0,'rgba(0,0,0,0.02)');
+      rg2.addColorStop(1,'transparent');
+    }
+    ctx.fillStyle=rg2;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function drawGrid(c){
+    const sz=64;
+    ctx.strokeStyle=c.line;
+    ctx.lineWidth=1;
+    // vertical
+    for(let x=sz;x<W;x+=sz){
+      ctx.globalAlpha=0.4+0.6*(1-Math.abs(x/W-0.5)*2);
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+    }
+    // horizontal
+    for(let y=sz;y<H;y+=sz){
+      ctx.globalAlpha=0.3+0.5*(1-y/H);
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+
+  function drawConnections(c){
+    const DIST=160;
+    ctx.lineWidth=1;
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<DIST){
+          const a=(1-d/DIST)*0.5;
+          ctx.globalAlpha=a;
+          ctx.strokeStyle=c.line;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x,nodes[i].y);
+          ctx.lineTo(nodes[j].x,nodes[j].y);
+          ctx.stroke();
         }
-      });
-    }, { threshold: 0.1 });
+      }
+    }
+    ctx.globalAlpha=1;
+  }
 
-    revealEls.forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-      io.observe(el);
+  function drawNodes(c, t){
+    nodes.forEach(n=>{
+      n.pulse+=n.pulseSpeed;
+      const pulse=Math.sin(n.pulse)*0.4+0.6;
+      ctx.globalAlpha=pulse*0.7;
+      ctx.fillStyle=c.dot;
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fill();
     });
-  </script>
-</body>
+    ctx.globalAlpha=1;
+  }
 
+  function updateNodes(){
+    nodes.forEach(n=>{
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<0)n.x=W; if(n.x>W)n.x=0;
+      if(n.y<0)n.y=H; if(n.y>H)n.y=0;
+    });
+  }
+
+  let lastTheme=null;
+  function frame(){
+    const c=getColors();
+    // Only full redraw when theme changes or every frame (bg is fast)
+    drawBg(c);
+    drawGrid(c);
+    drawConnections(c);
+    drawNodes(c);
+    updateNodes();
+    frameId=requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize',resize);
+  resize();
+  frame();
+
+  // Re-trigger on theme change
+  const orig=window.setT;
+  window.setT=function(n){
+    if(orig)orig(n);
+    // canvas auto-picks new colors next frame via getTheme()
+  };
+})();
+
+</script>
+</body>
 </html>
