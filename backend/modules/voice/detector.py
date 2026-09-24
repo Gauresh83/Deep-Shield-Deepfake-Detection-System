@@ -42,7 +42,7 @@ from dataclasses import dataclass, asdict
 @dataclass
 class VoiceAnalysisResult:
     score: float                     # 0-100  (higher = more authentic)
-    verdict: str                     # authentic | suspicious | fake
+    verdict: str                     # authentic | uncertain | fake | no_speech | too_short
     confidence: float                # 0-100
     processing_time_ms: int
 
@@ -64,6 +64,10 @@ class VoiceAnalysisResult:
     model_used: str
     features_extracted: int
     model_loaded: bool
+
+    # ── Phase 0 structured-gating fields (mirrors face/nlp modules) ──────
+    status: str = "ANALYZED"   # ANALYZED | NO_SPEECH_DETECTED | TOO_SHORT
+    message: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -89,6 +93,11 @@ class VoiceDetector:
     # Chunked inference window settings — must match training (3s window, 1.5s hop)
     WINDOW_SEC = 3.0
     HOP_SEC = 1.5
+
+    # ── Phase 0 gating thresholds ─────────────────────────────────────────
+    MIN_DURATION_SEC = 1.0       # shorter than this, not even one full window fits
+    SILENCE_RMS_THRESHOLD = 0.005   # per-frame RMS below this counts as "silent"
+    MAX_SILENCE_RATIO = 0.97     # fraction of frames that must be silent to gate
 
     def __init__(self):
         self.model = None
@@ -182,6 +191,12 @@ class VoiceDetector:
         """Main entry point — analyze an audio file and return results."""
         start = time.time()
 
+        gate_status, gate_message, gate_meta = self._quality_gate(file_path)
+        if gate_status:
+            result = self._gated_result(gate_status, gate_message, gate_meta)
+            result.processing_time_ms = int((time.time() - start) * 1000)
+            return result
+
         if self.librosa_available and self.model_loaded:
             result = self._analyze_with_model(file_path)
         elif self.librosa_available:
@@ -191,6 +206,74 @@ class VoiceDetector:
 
         result.processing_time_ms = int((time.time() - start) * 1000)
         return result
+
+    def _quality_gate(self, file_path: str):
+        """
+        Hard gate before any authenticity verdict is produced — mirrors the
+        face module's Phase 0 pattern (no-face gate). Returns
+        (status, message, meta) if the gate should short-circuit analysis,
+        or (None, None, None) if the audio passes through to normal analysis.
+        Fails OPEN (lets analysis proceed) on any error here, since a gate
+        bug should never be the reason a legitimate file can't be analyzed.
+        """
+        try:
+            if self.librosa_available:
+                import librosa
+                import numpy as np
+                y, sr = librosa.load(file_path, sr=16000, mono=True)
+                duration = len(y) / sr if sr else 0.0
+
+                if duration < self.MIN_DURATION_SEC:
+                    return ("TOO_SHORT",
+                            f"Audio is only {duration:.2f}s long — at least "
+                            f"{self.MIN_DURATION_SEC:.0f}s is needed for reliable analysis.",
+                            {"duration_seconds": round(duration, 2)})
+
+                rms = librosa.feature.rms(y=y)[0]
+                if len(rms) == 0:
+                    return ("NO_SPEECH_DETECTED",
+                            "This audio appears to contain no usable signal.",
+                            {"duration_seconds": round(duration, 2)})
+                silence_ratio = float((rms < self.SILENCE_RMS_THRESHOLD).mean())
+                if silence_ratio > self.MAX_SILENCE_RATIO:
+                    return ("NO_SPEECH_DETECTED",
+                            "This audio is silent or has no significant speech content.",
+                            {"duration_seconds": round(duration, 2),
+                             "silence_ratio": round(silence_ratio, 3)})
+                return None, None, None
+            else:
+                # No librosa — best-effort duration check via the WAV header only
+                # (works for .wav; other formats fall through to the pure-python
+                # fallback analyzer, which reports its own errors).
+                try:
+                    with wave.open(file_path, "rb") as wf:
+                        sr = wf.getframerate()
+                        n = wf.getnframes()
+                    duration = n / sr if sr else 0.0
+                    if duration < self.MIN_DURATION_SEC:
+                        return ("TOO_SHORT",
+                                f"Audio is only {duration:.2f}s long — at least "
+                                f"{self.MIN_DURATION_SEC:.0f}s is needed for reliable analysis.",
+                                {"duration_seconds": round(duration, 2)})
+                except Exception:
+                    pass  # not a WAV file or unreadable header — let the fallback handle it
+                return None, None, None
+        except Exception:
+            return None, None, None
+
+    def _gated_result(self, status: str, message: str, meta: Optional[Dict[str, Any]]) -> VoiceAnalysisResult:
+        meta = meta or {}
+        verdict = "no_speech" if status == "NO_SPEECH_DETECTED" else "too_short"
+        return VoiceAnalysisResult(
+            status=status, message=message,
+            score=0.0, verdict=verdict, confidence=88.0, processing_time_ms=0,
+            mfcc_anomaly_score=0.0, spectral_consistency=0.0, pitch_naturalness=0.0,
+            temporal_coherence=0.0, clone_probability=0.0,
+            duration_seconds=meta.get("duration_seconds", 0.0),
+            sample_rate=0, num_channels=0, bit_depth=0, frame_count=0,
+            model_used="N/A — audio did not pass the quality gate",
+            features_extracted=0, model_loaded=self.model_loaded,
+        )
 
     def _analyze_with_model(self, file_path: str) -> VoiceAnalysisResult:
         """
@@ -346,7 +429,8 @@ class VoiceDetector:
         except Exception:
             # If not a WAV file or parse fails, return safe defaults
             return VoiceAnalysisResult(
-                score=50.0, verdict="suspicious", confidence=20.0,
+                status="ANALYZED",
+                score=50.0, verdict="uncertain", confidence=15.0,
                 processing_time_ms=0, mfcc_anomaly_score=50.0,
                 spectral_consistency=50.0, pitch_naturalness=50.0,
                 temporal_coherence=50.0, clone_probability=50.0,
@@ -354,6 +438,7 @@ class VoiceDetector:
                 bit_depth=0, frame_count=0,
                 model_used="Fallback (install librosa for full analysis)",
                 features_extracted=0, model_loaded=False,
+                message="Could not fully parse this audio file; result is low-confidence.",
             )
 
     def _raw_wav_analysis(self, file_path: str) -> VoiceAnalysisResult:
@@ -489,20 +574,30 @@ class VoiceDetector:
         return 70, 45
 
     def _score_to_verdict(self, score: float):
-        authentic_th, fake_th = self._load_thresholds()
+        """
+        Same calibrated 3-band approach as face/nlp detectors: a genuine
+        'uncertain' band with confidence that varies by how close the score
+        is to the middle, instead of a flat 50.0. Still honors a calibrated
+        voice_thresholds.json if the trained model shipped one — those
+        become the UNCERTAIN_LOW/HIGH boundaries instead of the 35/65 default.
+        """
+        authentic_th, fake_th = self._load_thresholds()  # defaults 70, 45 if no file
 
         if score >= authentic_th:
             verdict = "authentic"
             span = max(100 - authentic_th, 1e-8)
-            confidence = min((score - authentic_th) / span * 100, 99.9)
-        elif score >= fake_th:
-            verdict = "suspicious"
-            confidence = 50.0
-        else:
+            confidence = 60 + min((score - authentic_th) / span, 1.0) * 39
+        elif score <= fake_th:
             verdict = "fake"
             span = max(fake_th, 1e-8)
-            confidence = min((fake_th - score) / span * 100, 99.9)
-        return verdict, round(confidence, 2)
+            confidence = 60 + min((fake_th - score) / span, 1.0) * 39
+        else:
+            verdict = "uncertain"
+            band_half = max((authentic_th - fake_th) / 2, 1e-8)
+            dist_from_edge = min(score - fake_th, authentic_th - score)
+            confidence = 45 - (dist_from_edge / band_half) * 30
+            confidence = max(confidence, 10.0)
+        return verdict, round(min(confidence, 99.9), 2)
 
 
 # Singleton instance

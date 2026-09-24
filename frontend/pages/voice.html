@@ -315,8 +315,9 @@
       document.getElementById("voice-no-result").style.display = "none";
       const body = document.getElementById("voice-result-body");
       body.style.display = "flex";
-      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "suspicious" : "fake");
-      const vc = { authentic: "CLEAR", suspicious: "MEDIUM", fake: "CRITICAL" }[verdict];
+      const verdict = summary.verdict || (score >= 70 ? "authentic" : score >= 45 ? "uncertain" : "fake");
+      const vcMap = { authentic: "CLEAR", uncertain: "MEDIUM", suspicious: "MEDIUM", fake: "CRITICAL", no_speech: "MEDIUM", too_short: "MEDIUM" };
+      const vc = vcMap[verdict] || "MEDIUM";
       const color = scoreColor(score);
       const pitch = (analysis && analysis.pitch_naturalness) ?? Math.min(score + 10, 100);
       const cloneProb = summary.clone_probability ?? Math.min(100 - score + 15, 100);
@@ -328,7 +329,7 @@
       <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-top:6px">Voice Authenticity Score</div>
     </div>
     <div class="severity-badge ${vc}" style="width:100%;justify-content:center">
-      ${verdict === "authentic" ? "Natural Human Voice" : verdict === "suspicious" ? "Possible Manipulation" : "Voice Clone Detected"}
+      ${verdict === "authentic" ? "Natural Human Voice" : verdict === "fake" ? "Voice Clone Detected" : verdict === "no_speech" ? "No Speech Detected" : verdict === "too_short" ? "Audio Too Short" : "Possible Manipulation"}
     </div>
     <div class="scan-meter">
       ${[["Pitch Naturalness", pitch, "var(--success)"], ["Clone Probability", cloneProb, "var(--danger)"], ["Prosody Score", prosody, "var(--accent)"], ["Noise Profile Match", noiseMatch, "var(--warning)"]].map(([l, v, c]) => `

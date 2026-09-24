@@ -1,5 +1,5 @@
 {
-  "liveServer.settings.port": 5501,
+  "liveServer.settings.port": 5500,
   "liveServer.settings.root": "/frontend",
   "liveServer.settings.CustomBrowser": "chrome",
   "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
