@@ -49,6 +49,22 @@ Phase 0 hard-gating (added):
   stop-gap for Phase 0. A proper human-face-vs-illustration classifier
   is future work (see project plan).
 --------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+Phase 2 wiring (added):
+  Detector 1 (this file, EfficientNet-B4 / heuristic — specializes in
+  fully-synthetic/GAN faces) now runs ALONGSIDE Detector 3
+  (faceswap_detector.py, ResNet18 fine-tuned on FaceForensics++ —
+  specializes in face-swap/manipulation on otherwise-real footage).
+  See PHASE1_ARCHITECTURE.md §9 for why these are two separate models
+  rather than one. Both scores are surfaced in the new
+  `detector_breakdown` field on FaceAnalysisResult; the top-level
+  score/verdict/confidence still come from Detector 1 only (no fusion
+  logic yet — that's fusion.py, tracked separately per the architecture
+  doc). Detector 3 fails open exactly like Detector 1: if its weights
+  aren't present, detector_breakdown.face_swap_manipulation simply
+  reports model_loaded=False and the rest of the pipeline is unaffected.
+--------------------------------------------------------------------------
 """
 
 import os
@@ -59,6 +75,9 @@ import math
 import struct
 from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field, asdict
+
+from .faceswap_detector import faceswap_detector
+from .fusion import fuse_face_detectors
 
 
 @dataclass
@@ -111,6 +130,14 @@ class FaceAnalysisResult:
     faces: List[Dict[str, Any]] = field(default_factory=list)  # per-face breakdown (multi-face images)
     face_detector_used: str = "haar_cascade"   # "mediapipe" | "haar_cascade"
 
+    # ── Phase 2 field: Detector 1 + Detector 3 side-by-side output ───────
+    # {"face_authenticity": {...}, "face_swap_manipulation": {...}}
+    detector_breakdown: Dict[str, Any] = field(default_factory=dict)
+    # Which detector drove a fused "fake" verdict, e.g. "face_swap_manipulation"
+    # or "face_manipulation" — None when the verdict came from the weighted
+    # average rather than a single confident detector. Set by fuse_face_detectors().
+    primary_reason: Optional[str] = None
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -130,6 +157,11 @@ class FaceDetector:
     verdict is produced: face-detection → quality-check → classification.
     No face, or a face too small/blurry/dark to analyse reliably, never
     reaches the classifier — see analyze_file() / _analyze_image_cv2().
+
+    Detector 3 (faceswap_detector, imported above) runs alongside this
+    detector on the same quality-gated face crop and its result is
+    attached to FaceAnalysisResult.detector_breakdown — see module
+    docstring "Phase 2 wiring" note.
     """
 
     WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "weights", "face_model.pt")
@@ -207,6 +239,35 @@ class FaceDetector:
         result.processing_time_ms = int((time.time() - start) * 1000)
         return result
 
+    # ── Detector 3 helper (shared by image + video paths) ───────────────
+
+    def _run_faceswap_detector(self, frame, box) -> Dict[str, Any]:
+        """
+        Runs Detector 3 (faceswap_detector) on a single already-detected,
+        already-quality-gated face crop and returns its result as a plain
+        dict, ready to drop into detector_breakdown. Never raises — mirrors
+        the fail-open convention used everywhere else in this file.
+        """
+        try:
+            x, y, fw, fh = box
+            crop = frame[max(0, y):y + fh, max(0, x):x + fw]
+            if crop.size == 0:
+                return {"status": "ERROR", "model_loaded": False,
+                        "message": "Empty face crop, could not run Detector 3."}
+            result = faceswap_detector.analyze_face_crop(crop)
+            return {
+                "status": result.status,
+                "score": result.score,
+                "verdict": result.verdict,
+                "confidence": result.confidence,
+                "model_used": result.model_used,
+                "model_loaded": result.model_loaded,
+                "message": result.message,
+            }
+        except Exception as e:
+            return {"status": "ERROR", "model_loaded": False,
+                    "message": f"Detector 3 failed: {e}"}
+
     # ── Video analysis ────────────────────────────────────────────────────────
 
     def _analyze_video(self, path: str) -> FaceAnalysisResult:
@@ -231,6 +292,8 @@ class FaceDetector:
 
         frame_results: List[FrameResult] = []
         all_frames: List[np.ndarray] = []
+        faceswap_scores: List[float] = []          # Detector 3, per frame with a face
+        faceswap_last_meta: Dict[str, Any] = {}     # most recent Detector 3 raw result (for status/model_used)
 
         face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
@@ -261,6 +324,13 @@ class FaceDetector:
                 authenticity_score=score,
             ))
 
+            # Detector 3 (faceswap) — only meaningful when a face was found
+            if face_detected:
+                fs_meta = self._run_faceswap_detector(frame, faces[0])
+                faceswap_last_meta = fs_meta
+                if fs_meta.get("model_loaded") and fs_meta.get("status") == "ANALYZED":
+                    faceswap_scores.append(fs_meta["score"])
+
         cap.release()
 
         if not frame_results:
@@ -277,6 +347,28 @@ class FaceDetector:
         blending = self._blending_artifact_score(all_frames, face_cascade)
         texture  = self._texture_consistency_score(all_frames)
         freq_anom = self._frequency_anomaly_score(all_frames[0] if all_frames else None)
+
+        # ── Detector 3 aggregate (same weighting convention as Detector 1:
+        #    mean of per-frame scores, weighted toward the worst frame) ────
+        detector_breakdown: Dict[str, Any] = {}
+        if faceswap_scores:
+            fs_worst = min(faceswap_scores)
+            fs_final = round(float(np.mean(faceswap_scores)) * 0.65 + fs_worst * 0.35, 2)
+            fs_verdict, fs_confidence = faceswap_detector._score_to_verdict(fs_final)
+            detector_breakdown["face_swap_manipulation"] = {
+                "status": "ANALYZED",
+                "score": fs_final,
+                "verdict": fs_verdict,
+                "confidence": fs_confidence,
+                "model_used": faceswap_last_meta.get("model_used", "ResNet18 (FaceForensics++)"),
+                "model_loaded": True,
+                "frames_scored": len(faceswap_scores),
+            }
+        else:
+            detector_breakdown["face_swap_manipulation"] = faceswap_last_meta or {
+                "status": "NOT_LOADED", "model_loaded": False,
+                "message": "Face-swap detector weights are not loaded; this signal is unavailable.",
+            }
 
         # ── GATE: no face in ANY sampled frame → don't emit a verdict ────
         if faces_det == 0:
@@ -297,6 +389,7 @@ class FaceDetector:
                 duration_seconds=round(duration, 2), file_format="video",
                 model_used="N/A — no face reached the classifier",
                 model_loaded=self.model_loaded, processing_time_ms=0,
+                detector_breakdown=detector_breakdown,
             )
 
         final_score = float(np.mean(scores))
@@ -314,11 +407,29 @@ class FaceDetector:
             message = ("Face detected in %d of %d sampled frames; result is based on "
                         "frames where a face was found." % (faces_det, len(frame_results)))
 
+        detector_breakdown["face_authenticity"] = {
+            "status": status,
+            "score": final_score,
+            "verdict": verdict,
+            "confidence": confidence,
+            "model_used": "EfficientNet-B4 (FaceForensics++)" if self.model_loaded
+                          else "OpenCV Heuristic (install timm + weights)",
+            "model_loaded": self.model_loaded,
+        }
+
+        # ── Fuse Detector 1 + Detector 3 (+ Detector 2, once wired) into
+        #    the single top-level score/verdict/confidence — see fusion.py.
+        #    Individual detector outputs stay visible in detector_breakdown
+        #    regardless of what fusion decides. ─────────────────────────
+        fusion_result = fuse_face_detectors(detector_breakdown)
+        final_status = status
+        final_message = fusion_result.message or message
+
         return FaceAnalysisResult(
-            status=status, message=message,
-            score=final_score,
-            verdict=verdict,
-            confidence=confidence,
+            status=final_status, message=final_message,
+            score=fusion_result.score,
+            verdict=fusion_result.verdict,
+            confidence=fusion_result.confidence,
             frames_analyzed=len(frame_results),
             faces_detected=faces_det,
             frame_scores=[round(s, 2) for s in scores],
@@ -337,6 +448,8 @@ class FaceDetector:
                        else "OpenCV Heuristic (install timm + weights)",
             model_loaded=self.model_loaded,
             processing_time_ms=0,
+            detector_breakdown=detector_breakdown,
+            primary_reason=fusion_result.primary_reason,
         )
 
     def _analyze_video_fallback(self, path: str) -> FaceAnalysisResult:
@@ -394,6 +507,12 @@ class FaceDetector:
             base.model_loaded = self.model_loaded
             base.score = 0.0
             base.quality = {"non_face_heuristic": info}
+            base.detector_breakdown = {
+                "face_swap_manipulation": {
+                    "status": "NOT_RUN", "model_loaded": faceswap_detector.model_loaded,
+                    "message": "No face detected, Detector 3 not run.",
+                }
+            }
 
             if category == "blank":
                 base.status = "NO_FACE_DETECTED"
@@ -473,6 +592,12 @@ class FaceDetector:
             base.model_loaded = self.model_loaded
             base.message = ("Detected %d face(s) but none were clear/large enough to "
                              "analyse reliably." % len(detected_faces))
+            base.detector_breakdown = {
+                "face_swap_manipulation": {
+                    "status": "NOT_RUN", "model_loaded": faceswap_detector.model_loaded,
+                    "message": "Face(s) failed the quality gate, Detector 3 not run.",
+                }
+            }
             return base
 
         # ── At least one face scored — build the aggregate result on the
@@ -485,17 +610,38 @@ class FaceDetector:
         symmetry  = self._face_symmetry_score([img], cascade_for_helpers)
         blending  = self._blending_artifact_score([img], cascade_for_helpers)
 
+        # ── Detector 3 (faceswap) on the same primary face crop ──────────
+        faceswap_meta = self._run_faceswap_detector(img, primary_box)
+        detector_breakdown = {
+            "face_authenticity": {
+                "status": "ANALYZED",
+                "score": round(primary_score, 2),
+                "verdict": primary_verdict,
+                "confidence": primary_confidence,
+                "model_used": "EfficientNet-B4" if self.model_loaded else "OpenCV Heuristic",
+                "model_loaded": self.model_loaded,
+            },
+            "face_swap_manipulation": faceswap_meta,
+        }
+
         status = "ANALYZED"
         message = "Analysis complete."
         if primary_verdict == "uncertain":
             message = ("The available evidence is insufficient for a confident "
                        "authenticity determination on the primary face.")
 
+        # ── Fuse Detector 1 + Detector 3 (+ Detector 2, once wired) into
+        #    the single top-level score/verdict/confidence — see fusion.py.
+        #    Individual detector outputs stay visible in detector_breakdown
+        #    regardless of what fusion decides. ─────────────────────────
+        fusion_result = fuse_face_detectors(detector_breakdown)
+        final_message = fusion_result.message or message
+
         return FaceAnalysisResult(
-            status=status, message=message,
+            status=status, message=final_message,
             quality=primary_quality, faces=per_face_results,
             face_detector_used=detector_name,
-            score=round(primary_score, 2), verdict=primary_verdict, confidence=primary_confidence,
+            score=fusion_result.score, verdict=fusion_result.verdict, confidence=fusion_result.confidence,
             frames_analyzed=1, faces_detected=len(detected_faces),
             frame_scores=[round(primary_score, 2)],
             worst_frame_score=round(primary_score, 2), best_frame_score=round(primary_score, 2),
@@ -508,6 +654,8 @@ class FaceDetector:
             width=w, height=h, fps=0, duration_seconds=0, file_format="image",
             model_used="EfficientNet-B4" if self.model_loaded else "OpenCV Heuristic",
             model_loaded=self.model_loaded, processing_time_ms=0,
+            detector_breakdown=detector_breakdown,
+            primary_reason=fusion_result.primary_reason,
         )
 
     # ── Face detection (unified: mediapipe preferred, haar fallback) ─────
