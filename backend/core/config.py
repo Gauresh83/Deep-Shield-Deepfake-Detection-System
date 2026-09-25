@@ -19,6 +19,17 @@ class Settings(BaseSettings):
     ALLOWED_AUDIO_TYPES: str = "wav,mp3,flac,m4a,ogg"
     ALLOWED_IMAGE_TYPES: str = "jpg,jpeg,png,webp"
 
+    # ── Face module — detector fusion flags (PHASE1_ARCHITECTURE.md §7/§9.4) ─
+    # Detector 3 (faceswap_detector.py, ResNet18/FaceForensics++) is trained
+    # and wired into detector.py + fusion.py — on by default.
+    ENABLE_FACESWAP_DETECTOR: bool = True
+    # Detector 2 (ai_gen_detector.py, Midjourney/diffusion-image detector) is
+    # NOT trained yet — stays off until it exists and is validated (Step A/B
+    # in the architecture doc). Flipping this to True before ai_gen_detector.py
+    # is written has no effect; detector.py only reads it once that module
+    # is wired in.
+    ENABLE_AI_GEN_DETECTOR: bool = False
+
     @property
     def allowed_video_list(self) -> List[str]:
         return [x.strip() for x in self.ALLOWED_VIDEO_TYPES.split(",")]
