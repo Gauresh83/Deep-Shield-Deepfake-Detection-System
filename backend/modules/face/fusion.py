@@ -1,142 +1,108 @@
 """
-backend/modules/face/fusion.py
-================================
-Face-level fusion — combines whichever Detector 1/2/3 results are
-present in detector_breakdown into a single top-level score/verdict/
-confidence, while every individual detector's raw output stays visible
-in detector_breakdown itself (built by detector.py).
+Face-level fusion — combines however many of the face detectors are
+currently available (Detector 1: face authenticity, Detector 2: AI-generated
+image, Detector 3: face-swap) into a single verdict.
 
-Why this exists as a separate module (see PHASE1_ARCHITECTURE.md §5):
-detector.py's job is running detectors and building detector_breakdown;
-fusion.py's job is turning that breakdown into ONE number the rest of
-the app (fusion/engine.py, frontend) can read. Keeping this separate
-means adding Detector 2 (ai_gen_detector.py, not trained yet) later is
-a drop-in — nothing in this file's logic changes, it just needs to see
-an "ai_generated" entry show up in the dict it's given.
+This is intentionally separate from backend/modules/fusion/engine.py, which
+combines Face + Voice + NLP at the TOP level. This module only combines
+detectors *within* the face module, producing one face_score/verdict that
+engine.py keeps consuming exactly as before — engine.py needs no changes.
 
-Currently wired detectors (see detector.py):
-  - face_authenticity      (Detector 1, EfficientNet-B4 / heuristic)
-  - face_swap_manipulation (Detector 3, ResNet18, FaceForensics++)
-Not yet wired (future — Phase 1):
-  - ai_generated            (Detector 2, ai_gen_detector.py)
+Written generically (a list of signals, not fixed auth/swap parameters) so
+adding Detector 2 didn't require rewriting the combine logic — the same
+function handles 2 or 3 (or more, later) detectors.
 
-To add Detector 2 later: have detector.py put its result into
-detector_breakdown under the key "ai_generated" with the same shape
-({"status","score","verdict","confidence","model_used","model_loaded"}),
-using "ai_generated" as its fake-side verdict string. That's it — no
-change needed here.
+Combine rule (see PHASE1_ARCHITECTURE.md §5, extended to N detectors):
+  - Any available detector that is confidently "fake" (or "ai_generated",
+    confidence > 60) wins outright — each detector specializes in a
+    different fake-type, so an "OR" on the fake side avoids one detector's
+    blind spot hiding another's catch. If more than one qualifies, the
+    most confident one is used.
+  - Otherwise, confidence-weighted average across whichever detectors
+    actually produced a score (unavailable/NOT_LOADED detectors are
+    skipped, not treated as neutral 50s that would dilute the result).
 """
-from typing import Dict, Any, Tuple, Optional
-from dataclasses import dataclass, field
-
-# Fake-side verdict labels across all detectors. Extend this set if a
-# future detector introduces a new fake-side verdict string.
-FAKE_VERDICTS = {"fake", "ai_generated"}
-CONFIDENT_FAKE_THRESHOLD = 60.0
-
-# Human-readable primary_reason per detector — extend when Detector 2 lands.
-DETECTOR_LABELS = {
-    "face_authenticity": "face_manipulation",
-    "face_swap_manipulation": "face_swap_manipulation",
-    "ai_generated": "ai_generated_image",
-}
-
-# Same calibrated 3-band thresholds used by every detector in this codebase.
-UNCERTAIN_LOW = 35.0
-UNCERTAIN_HIGH = 65.0
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional, Tuple
 
 
 @dataclass
-class FusionResult:
-    score: float
-    verdict: str                      # authentic | uncertain | fake
-    confidence: float
-    message: str = ""
-    primary_reason: Optional[str] = None            # which detector drove a "fake" verdict, if any
-    contributing_detectors: Dict[str, Any] = field(default_factory=dict)
+class DetectorSignal:
+    name: str                          # breakdown key, e.g. "face_authenticity"
+    score: Optional[float]             # None if this detector didn't run/load
+    verdict: Optional[str]
+    confidence: Optional[float]
+    model: str
+    fake_value: str = "fake"           # this detector's word for "fake" (e.g. "ai_generated")
 
 
-def _is_usable(entry: Dict[str, Any]) -> bool:
-    """A detector's result only counts toward fusion if it actually ran
-    and is model-backed (not a NOT_LOADED / NOT_RUN / ERROR stub)."""
-    if not entry:
-        return False
-    return entry.get("status") == "ANALYZED" and entry.get("model_loaded", False)
-
-
-def fuse_face_detectors(detector_breakdown: Dict[str, Any]) -> FusionResult:
+def fuse_detectors(
+    signals: List[DetectorSignal],
+    score_to_verdict_fn,
+) -> Tuple[float, str, float, str, Dict[str, Any]]:
     """
-    Combines however many detector results are present and usable in
-    detector_breakdown into one FusionResult.
+    Returns (final_score, final_verdict, final_confidence, primary_reason, breakdown).
 
-    Rule (PHASE1_ARCHITECTURE.md §5):
-      1. If any usable detector is confidently on the fake side
-         (confidence > 60), trust it immediately — detectors specialize
-         in different fake-types, so an OR on the fake side avoids one
-         detector's blind spot hiding another's catch.
-      2. Otherwise, confidence-weighted average across all usable
-         detectors' scores — a low-confidence detector shouldn't drag
-         the combined score as hard as a confident one.
-      3. If nothing is usable (e.g. only Detector 1's OpenCV-heuristic
-         fallback ran, no model loaded anywhere), fall back to whatever
-         single entry detector_breakdown does have, so the app still
-         returns something instead of an empty result.
+    score_to_verdict_fn: the calibrated 3-band verdict function to reuse for
+    the weighted-average case (passed in rather than imported, so this
+    module has no dependency on detector.py — avoids a circular import).
     """
-    usable = {name: entry for name, entry in detector_breakdown.items() if _is_usable(entry)}
+    breakdown = {
+        s.name: {"score": s.score, "verdict": s.verdict,
+                  "confidence": s.confidence, "model": s.model}
+        for s in signals
+    }
 
-    # ── Step 1: OR on confident-fake ──────────────────────────────────
-    for name, entry in usable.items():
-        if entry.get("verdict") in FAKE_VERDICTS and entry.get("confidence", 0) > CONFIDENT_FAKE_THRESHOLD:
-            return FusionResult(
-                score=entry["score"], verdict="fake", confidence=entry["confidence"],
-                message=f"{DETECTOR_LABELS.get(name, name).replace('_', ' ').capitalize()} detected with high confidence.",
-                primary_reason=DETECTOR_LABELS.get(name, name),
-                contributing_detectors=usable,
-            )
+    available = [s for s in signals if s.score is not None]
 
-    # ── Step 2: confidence-weighted average ───────────────────────────
-    if usable:
-        total_conf = sum(e.get("confidence", 0) for e in usable.values())
-        if total_conf == 0:
-            combined = sum(e["score"] for e in usable.values()) / len(usable)
-        else:
-            combined = sum(e["score"] * e.get("confidence", 0) for e in usable.values()) / total_conf
-        verdict, confidence = _score_to_verdict(combined)
-        message = ("Analysis complete." if verdict != "uncertain" else
-                   "The available evidence is insufficient for a confident authenticity determination.")
-        return FusionResult(
-            score=round(combined, 2), verdict=verdict, confidence=confidence,
-            message=message, primary_reason=None, contributing_detectors=usable,
-        )
+    if not available:
+        return 50.0, "uncertain", 0.0, "none", breakdown
 
-    # ── Step 3: nothing usable — fall back to any single entry present ─
-    for name, entry in detector_breakdown.items():
-        if entry and "score" in entry:
-            return FusionResult(
-                score=entry["score"], verdict=entry.get("verdict", "uncertain"),
-                confidence=entry.get("confidence", 0.0),
-                message=entry.get("message", ""),
-                primary_reason=None, contributing_detectors={name: entry},
-            )
+    if len(available) == 1:
+        s = available[0]
+        return s.score, s.verdict, s.confidence, s.name, breakdown
 
-    return FusionResult(score=50.0, verdict="uncertain", confidence=0.0,
-                         message="No detector produced a usable result.",
-                         primary_reason=None, contributing_detectors={})
+    # Any confident "fake"-family verdict wins outright — pick the most
+    # confident one if several detectors qualify.
+    fake_candidates = [s for s in available
+                        if s.verdict == s.fake_value and (s.confidence or 0) > 60]
+    if fake_candidates:
+        winner = max(fake_candidates, key=lambda s: s.confidence or 0)
+        return winner.score, "fake", winner.confidence, winner.name, breakdown
+
+    # Otherwise, confidence-weighted average across available detectors only.
+    total_conf = sum((s.confidence or 0) for s in available)
+    if total_conf <= 0:
+        combined = sum(s.score for s in available) / len(available)
+    else:
+        combined = sum(s.score * (s.confidence or 0) for s in available) / total_conf
+
+    verdict, confidence = score_to_verdict_fn(combined)
+    # Attribute the result to whichever available detector scored lowest
+    # (most "fake-leaning") — informative even when the overall verdict
+    # isn't "fake", since it shows which signal pulled the average down.
+    primary = min(available, key=lambda s: s.score)
+    return round(combined, 2), verdict, confidence, primary.name, breakdown
 
 
-def _score_to_verdict(score: float) -> Tuple[str, float]:
-    """Identical calibrated 3-band logic used across all detectors — kept
-    as a local copy (same design note as faceswap_detector.py) so this
-    module has no import dependency on detector.py."""
-    if score >= UNCERTAIN_HIGH:
-        span = 100 - UNCERTAIN_HIGH
-        conf = 60 + min((score - UNCERTAIN_HIGH) / span, 1.0) * 39
-        return "authentic", round(min(conf, 99.9), 2)
-    if score <= UNCERTAIN_LOW:
-        span = UNCERTAIN_LOW
-        conf = 60 + min((UNCERTAIN_LOW - score) / span, 1.0) * 39
-        return "fake", round(min(conf, 99.9), 2)
-    dist_from_edge = min(score - UNCERTAIN_LOW, UNCERTAIN_HIGH - score)
-    band_half = (UNCERTAIN_HIGH - UNCERTAIN_LOW) / 2
-    conf = 45 - (dist_from_edge / band_half) * 30
-    return "uncertain", round(max(conf, 10.0), 2)
+def fuse_face_detectors(
+    auth_score: float, auth_verdict: str, auth_confidence: float, auth_model: str,
+    swap_score: Optional[float], swap_verdict: Optional[str],
+    swap_confidence: Optional[float], swap_model: str,
+    score_to_verdict_fn,
+) -> Tuple[float, str, float, str, Dict[str, Any]]:
+    """
+    Backward-compatible 2-detector wrapper (Detector 1 + Detector 3), kept so
+    existing call sites don't break. New code should build a DetectorSignal
+    list and call fuse_detectors() directly (see detector.py's per-face loop
+    for the 3-detector example, which includes Detector 2 as well).
+    """
+    signals = [
+        DetectorSignal("face_authenticity", auth_score, auth_verdict, auth_confidence, auth_model),
+        DetectorSignal("face_swap", swap_score, swap_verdict, swap_confidence, swap_model),
+    ]
+    score, verdict, confidence, primary, breakdown = fuse_detectors(signals, score_to_verdict_fn)
+    # Keep the original primary_reason vocabulary ("face_manipulation" instead
+    # of "face_swap") for anything still reading the old field name.
+    primary_reason = "face_manipulation" if primary == "face_swap" and verdict == "fake" else primary
+    return score, verdict, confidence, primary_reason, breakdown
