@@ -78,8 +78,15 @@ async def full_fusion_analyze(
     nlp_dict     = {}
 
     try:
+        # Video files carry both a picture track (for Face) and, usually, an
+        # audio track (for Voice) — both detectors should get a chance to
+        # run on the same uploaded video, not just Face.
+        VIDEO_EXTS = {"mp4", "avi", "mov", "mkv", "webm"}
+        IMAGE_EXTS = {"jpg", "jpeg", "png", "webp"}
+        AUDIO_EXTS = {"wav", "mp3", "flac", "m4a", "ogg", "aac"}
+
         # Run modules (synchronously for simplicity; asyncio.gather in prod)
-        if use_face and tmp_path and original_ext in {"mp4","avi","mov","mkv","webm","jpg","jpeg","png","webp"}:
+        if use_face and tmp_path and original_ext in (VIDEO_EXTS | IMAGE_EXTS):
             try:
                 r = face_detector.analyze_file(tmp_path)
                 face_result = r.score
@@ -87,7 +94,12 @@ async def full_fusion_analyze(
             except Exception as e:
                 face_dict = {"error": str(e)}
 
-        if use_voice and tmp_path and original_ext in {"wav","mp3","flac","m4a","ogg","aac"}:
+        # librosa (backed by ffmpeg, already in the Docker image) can pull
+        # the audio track directly out of a video file — no separate
+        # extraction step needed. If the video has no audio track, or is
+        # silent, the voice module's own Phase 0 gate (NO_SPEECH_DETECTED)
+        # already handles that gracefully rather than producing a fake verdict.
+        if use_voice and tmp_path and original_ext in (VIDEO_EXTS | AUDIO_EXTS):
             try:
                 r = voice_detector.analyze_file(tmp_path)
                 voice_result = r.score
