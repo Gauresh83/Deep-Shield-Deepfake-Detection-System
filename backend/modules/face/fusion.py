@@ -14,10 +14,16 @@ function handles 2 or 3 (or more, later) detectors.
 
 Combine rule (see PHASE1_ARCHITECTURE.md §5, extended to N detectors):
   - Any available detector that is confidently "fake" (or "ai_generated",
-    confidence > 60) wins outright — each detector specializes in a
-    different fake-type, so an "OR" on the fake side avoids one detector's
-    blind spot hiding another's catch. If more than one qualifies, the
-    most confident one is used.
+    confidence > 60) wins outright — UNLESS another detector is, at the
+    same time, confidently "authentic" (confidence > 60). Detectors
+    specialize in different fake-types and different domains, so one
+    detector being wrongly-confident (e.g. due to a domain mismatch) must
+    not be allowed to silently override another detector that is actually
+    suited to the input and correctly confident the other way. When
+    detectors disagree like this, fall through to the confidence-weighted
+    average instead of letting either side blindly win.
+  - If there is no such disagreement, the most confident "fake"-family
+    detector wins outright (original rule, unchanged).
   - Otherwise, confidence-weighted average across whichever detectors
     actually produced a score (unavailable/NOT_LOADED detectors are
     skipped, not treated as neutral 50s that would dilute the result).
@@ -63,14 +69,23 @@ def fuse_detectors(
         return s.score, s.verdict, s.confidence, s.name, breakdown
 
     # Any confident "fake"-family verdict wins outright — pick the most
-    # confident one if several detectors qualify.
+    # confident one if several detectors qualify. BUT: if another detector
+    # is simultaneously confidently "authentic", don't let a confident-fake
+    # verdict blindly win — one detector's domain-mismatch error (e.g.
+    # Detector 1 on compressed FF++ frames) must not override a detector
+    # that is actually suited to this input and correctly confident.
     fake_candidates = [s for s in available
                         if s.verdict == s.fake_value and (s.confidence or 0) > 60]
-    if fake_candidates:
+    authentic_candidates = [s for s in available
+                             if s.verdict == "authentic" and (s.confidence or 0) > 60]
+
+    if fake_candidates and not authentic_candidates:
         winner = max(fake_candidates, key=lambda s: s.confidence or 0)
         return winner.score, "fake", winner.confidence, winner.name, breakdown
 
     # Otherwise, confidence-weighted average across available detectors only.
+    # This also covers the disagreement case above (fake vs authentic both
+    # confident) — it blends them instead of picking a winner blindly.
     total_conf = sum((s.confidence or 0) for s in available)
     if total_conf <= 0:
         combined = sum(s.score for s in available) / len(available)
